@@ -1,67 +1,97 @@
-# Bloc Operatoire Backend
+# Bloc Opératoire – Backend Core
 
-Backend **Spring Boot** pour une plateforme hospitalière de gestion du bloc opératoire.
+Backend **Spring Boot** constituant le **socle technique, réglementaire et architectural** d’une plateforme internationale de gestion intégrée du bloc opératoire, conforme aux exigences cliniques, médico-légales et industrielles définies dans le cahier des charges.
 
-## Objectif de cette étape
-Ce dépôt contient uniquement la **préparation de l'environnement technique** :
-- structure Maven,
-- dépendances essentielles,
-- configuration applicative,
-- point d'entrée Spring Boot.
+---
 
-Aucun module métier n'est implémenté dans cette phase.
+## Rôle du backend dans le projet global
+
+Ce backend est le **cœur souverain du système**.  
+Il porte :
+
+- la logique métier médicale,
+- la traçabilité légale non altérable,
+- la sécurité des accès et des données,
+- l’interopérabilité internationale (FHIR),
+- l’exposition d’API REST normalisées vers :
+  - Frontend clinique,
+  - Moteurs IA,
+  - Systèmes BI,
+  - SI hospitaliers tiers.
+
+Il est conçu pour un **déploiement multi-établissements, multi-pays, multi-langues**, avec auditabilité complète.
+
+---
+
+## Périmètre de cette phase (étape actuelle)
+
+Ce dépôt correspond à la **phase fondation backend** :
+
+- Initialisation de l’architecture Spring Boot
+- Structuration Maven
+- Dépendances critiques
+- Configuration sécurité, base de données et observabilité
+- Préparation à la conformité réglementaire
+
+**Aucun module métier n’est encore implémenté**  
+→ Cette étape verrouille le cadre technique avant tout développement clinique.
+
+---
+
+## Alignement cahier des charges
+
+Le backend est conçu pour supporter nativement :
+
+- Parcours patient péri-opératoire complet (pré-anesthésie → bloc → SSPI → réanimation → décès/morgue)
+- Calculs de scores médicaux validés (ASA, SOFA, APACHE II, Aldrete…)
+- Checklists OMS numériques opposables
+- Traçabilité médico-légale horodatée
+- IA assistive contrôlée (dictée, planification, qualité)
+- Business Intelligence et pilotage stratégique
+- Conformité ISO / RGPD / HIPAA / SaMD
+
+---
 
 ## Stack technique
-- Java 21
-- Spring Boot 3.3.x
-- Spring Web
-- Spring Data JPA
-- Spring Security + OAuth2 Resource Server
-- Flyway
-- PostgreSQL
-- Spring Boot Actuator
 
-## Arborescence principale
+- **Java 21**
+- **Spring Boot 3.3.x**
+- Spring Web (API REST)
+- Spring Data JPA
+- Spring Security
+- OAuth2 Resource Server (JWT)
+- Flyway (migrations versionnées)
+- PostgreSQL
+- Spring Boot Actuator (supervision)
+- Support natif FHIR (interopérabilité)
+
+Stack choisie pour :
+- robustesse industrielle,
+- maintenabilité long terme,
+- conformité réglementaire,
+- scalabilité internationale.
+
+---
+
+## Architecture logique cible (backend)
+
+- API REST sécurisée (stateless)
+- RBAC fin par rôle médical et administratif
+- Journal d’événements non modifiable
+- Séparation stricte :
+  - domaine clinique,
+  - sécurité,
+  - audit,
+  - interopérabilité,
+  - BI / IA.
+
+---
+
+## Arborescence actuelle
+
 ```text
 src/main/java/com/tn/softsys/blocoperatoire
-└── BlocOperatoireApplication.java
+└── BlocOperatoireApplication.java   # Point d’entrée Spring Boot
 
 src/main/resources
-└── application.properties
-```
-
-## Configuration fournie
-Le fichier `application.properties` contient une base de configuration pour :
-- serveur HTTP,
-- datasource PostgreSQL,
-- JPA/Hibernate,
-- migrations Flyway,
-- OAuth2 Resource Server (JWT issuer),
-- endpoints de supervision Actuator,
-- paramètres de journalisation,
-- clés de configuration applicative (audit, conformité, interop FHIR).
-
-## Démarrage local
-### 1) Pré-requis
-- JDK 21+
-- Maven 3.9+
-- PostgreSQL disponible localement
-
-### 2) Ajuster la configuration
-Mettre à jour au minimum :
-- `spring.datasource.url`
-- `spring.datasource.username`
-- `spring.datasource.password`
-- `spring.security.oauth2.resourceserver.jwt.issuer-uri`
-- `app.interop.fhir.base-url`
-
-### 3) Lancer l'application
-```bash
-mvn spring-boot:run
-```
-
-## Prochaines étapes recommandées
-- Ajouter des profils (`dev`, `test`, `prod`) avec variables d'environnement.
-- Mettre en place une stratégie de secrets management.
-- Initialiser les scripts Flyway dans `src/main/resources/db/migration`.
-- Ajouter les modules métier (patients, pré-anesthésie, bloc, SSPI, réanimation, morgue, BI).
+└── application.properties           # Configuration centrale
