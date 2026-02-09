@@ -21,20 +21,6 @@ Il porte :
 
 Il est conçu pour un **déploiement multi-établissements, multi-pays, multi-langues**, avec auditabilité complète.
 
----
-
-## Périmètre de cette phase (étape actuelle)
-
-Ce dépôt correspond à la **phase fondation backend** :
-
-- Initialisation de l’architecture Spring Boot
-- Structuration Maven
-- Dépendances critiques
-- Configuration sécurité, base de données et observabilité
-- Préparation à la conformité réglementaire
-
-**Aucun module métier n’est encore implémenté**  
-→ Cette étape verrouille le cadre technique avant tout développement clinique.
 
 ---
 
