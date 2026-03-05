@@ -1,37 +1,35 @@
 package com.tn.softsys.blocoperatoire.repository;
 
 import com.tn.softsys.blocoperatoire.domain.Patient;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.repository.JpaRepository;
+import com.tn.softsys.blocoperatoire.domain.Sexe;
+import com.tn.softsys.blocoperatoire.domain.GroupeSanguin;
 
-import java.time.LocalDate;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-public interface PatientRepository extends JpaRepository<Patient, UUID> {
+public interface PatientRepository extends
+        JpaRepository<Patient, UUID>,
+        JpaSpecificationExecutor<Patient> {
 
-    // ===============================
-    // Recherche FHIR
-    // ===============================
+    /* ================= IDENTIFICATION ================= */
+
     Optional<Patient> findByIdentiteFHIR(String identiteFHIR);
-
     boolean existsByIdentiteFHIR(String identiteFHIR);
 
-    // ===============================
-    // Pagination + Recherche
-    // ===============================
+    Optional<Patient> findByMrn(String mrn);
+    boolean existsByMrn(String mrn);
 
-    Page<Patient> findByNomContainingIgnoreCase(String nom, Pageable pageable);
+    /* ================= STATISTIQUES ================= */
 
-    Page<Patient> findByPrenomContainingIgnoreCase(String prenom, Pageable pageable);
+    long countBySexe(Sexe sexe);
+    long countByGroupeSanguin(GroupeSanguin groupeSanguin);
 
-    Page<Patient> findByNomContainingIgnoreCaseAndPrenomContainingIgnoreCase(
-            String nom,
-            String prenom,
-            Pageable pageable
-    );
+    /* ================= LISTES RAPIDES ================= */
 
-    Page<Patient> findByDateNaissance(LocalDate dateNaissance, Pageable pageable);
-
+    List<Patient> findTop10ByOrderByCreatedAtDesc();
+    List<Patient> findTop10ByOrderByUpdatedAtDesc();
 }

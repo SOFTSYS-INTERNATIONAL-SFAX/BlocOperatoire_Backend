@@ -140,11 +140,11 @@ public class SecurityConfig {
 
         // 1️⃣ RateLimit avant UsernamePasswordAuthenticationFilter
         http.addFilterBefore(rateLimitFilter,
-                UsernamePasswordAuthenticationFilter.class);
+              UsernamePasswordAuthenticationFilter.class);
 
         // 2️⃣ JWT avant UsernamePasswordAuthenticationFilter
         http.addFilterBefore(jwtAuthenticationFilter,
-                UsernamePasswordAuthenticationFilter.class);
+              UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }

@@ -3,15 +3,15 @@ package com.tn.softsys.blocoperatoire.mapper;
 import com.tn.softsys.blocoperatoire.domain.Salle;
 import com.tn.softsys.blocoperatoire.dto.salle.*;
 import org.springframework.stereotype.Component;
-
 @Component
 public class SalleMapper {
 
     public Salle toEntity(SalleRequestDTO dto) {
         return Salle.builder()
                 .nom(dto.getNom())
-                .type(dto.getType())
-                .disponible(dto.getDisponible())
+                .etageBatiment(dto.getEtageBatiment())
+                .equipements(dto.getEquipements())
+                .active(dto.getActive())
                 .build();
     }
 
@@ -19,14 +19,16 @@ public class SalleMapper {
         return SalleResponseDTO.builder()
                 .salleId(entity.getSalleId())
                 .nom(entity.getNom())
-                .type(entity.getType())
-                .disponible(entity.getDisponible())
+                .etageBatiment(entity.getEtageBatiment())
+                .equipements(entity.getEquipements())
+                .active(entity.getActive())
                 .build();
     }
 
     public void updateEntity(Salle entity, SalleRequestDTO dto) {
         entity.setNom(dto.getNom());
-        entity.setType(dto.getType());
-        entity.setDisponible(dto.getDisponible());
+        entity.setEtageBatiment(dto.getEtageBatiment());
+        entity.setEquipements(dto.getEquipements());
+        entity.setActive(dto.getActive());
     }
 }

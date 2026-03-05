@@ -12,8 +12,10 @@ public class SalleRequestDTO {
     private String nom;
 
     @NotBlank
-    private String type;
+    private String etageBatiment;
+
+    private String equipements;
 
     @NotNull
-    private Boolean disponible;
+    private Boolean active;
 }

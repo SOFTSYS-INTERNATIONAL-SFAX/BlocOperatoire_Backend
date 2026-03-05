@@ -1,5 +1,5 @@
 package com.tn.softsys.blocoperatoire.controller;
-import com.tn.softsys.blocoperatoire.dto.score.*;
+import com.tn.softsys.blocoperatoire.dto.scores.*;
 import com.tn.softsys.blocoperatoire.dto.incident.*;
 import com.tn.softsys.blocoperatoire.service.IncidentService;
 import jakarta.validation.Valid;
