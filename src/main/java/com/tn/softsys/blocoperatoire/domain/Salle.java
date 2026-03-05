@@ -18,11 +18,22 @@ public class Salle {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID salleId;
 
-    private String nom;
-    private String type;
-    private Boolean disponible;
+    /* ================= FORMULAIRE ================= */
 
-    // 1 → N Intervention
+    @Column(nullable = false)
+    private String nom;
+
+    @Column(nullable = false)
+    private String etageBatiment;
+
+    @Column(length = 2000)
+    private String equipements; // Stocké en texte séparé par virgules
+
+    @Column(nullable = false)
+    private Boolean active;
+
+    /* ================= RELATION ================= */
+
     @OneToMany(mappedBy = "salle")
     private List<Intervention> interventions = new ArrayList<>();
 }

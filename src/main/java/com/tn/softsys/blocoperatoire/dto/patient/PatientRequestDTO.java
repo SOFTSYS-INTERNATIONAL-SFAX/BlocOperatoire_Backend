@@ -1,5 +1,7 @@
 package com.tn.softsys.blocoperatoire.dto.patient;
 
+import com.tn.softsys.blocoperatoire.domain.GroupeSanguin;
+import com.tn.softsys.blocoperatoire.domain.Sexe;
 import jakarta.validation.constraints.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -10,29 +12,59 @@ import java.time.LocalDate;
 @Setter
 public class PatientRequestDTO {
 
-    @NotBlank(message = "L'identité FHIR est obligatoire")
-    @Size(max = 150, message = "L'identité FHIR ne doit pas dépasser 150 caractères")
+    @NotBlank
+    @Size(max = 150)
     private String identiteFHIR;
 
-    @NotBlank(message = "Le nom est obligatoire")
-    @Size(max = 100, message = "Le nom ne doit pas dépasser 100 caractères")
+    @NotBlank
+    @Size(max = 100)
+    private String mrn;
+
+    @NotBlank
+    @Size(max = 100)
     private String nom;
 
-    @NotBlank(message = "Le prénom est obligatoire")
-    @Size(max = 100, message = "Le prénom ne doit pas dépasser 100 caractères")
+    @NotBlank
+    @Size(max = 100)
     private String prenom;
 
-    @NotNull(message = "La date de naissance est obligatoire")
-    @Past(message = "La date de naissance doit être dans le passé")
+    @NotNull
+    @Past
     private LocalDate dateNaissance;
 
-    @NotBlank(message = "Le sexe est obligatoire")
-    @Pattern(
-            regexp = "HOMME|FEMME|AUTRE",
-            message = "Le sexe doit être HOMME, FEMME ou AUTRE"
-    )
-    private String sexe;
+    @NotNull
+    private Sexe sexe;
 
-    @Size(max = 100, message = "La nationalité ne doit pas dépasser 100 caractères")
+    @Size(max = 100)
     private String nationalite;
+
+    private GroupeSanguin groupeSanguin;
+
+    @Size(max = 1000)
+    private String allergies;
+
+    @Size(max = 1000)
+    private String traitementsEnCours;
+
+    @Size(max = 2000)
+    private String antecedentsMedicaux;
+
+    /* ================= ANTHROPOMÉTRIE ================= */
+
+    @Positive(message = "La taille doit être positive")
+    private Double tailleCm;
+
+    @Positive(message = "Le poids doit être positif")
+    private Double poidsKg;
+
+    /* ================= CONTACT ================= */
+
+    @Size(max = 255)
+    private String contactUrgenceNom;
+
+    @Pattern(
+            regexp = "^[0-9+ ]{8,15}$",
+            message = "Numéro de téléphone invalide"
+    )
+    private String contactUrgenceTelephone;
 }

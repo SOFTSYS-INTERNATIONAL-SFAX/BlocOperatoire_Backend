@@ -4,11 +4,13 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -17,8 +19,19 @@ import java.util.concurrent.ConcurrentHashMap;
 public class RateLimitFilter extends OncePerRequestFilter {
 
     private static final int MAX_ATTEMPTS = 5;
+    private static final int BLOCK_DURATION_MINUTES = 5;
 
-    private final Map<String, Integer> attemptsCache = new ConcurrentHashMap<>();
+    private static class AttemptData {
+        int attempts;
+        LocalDateTime lastAttempt;
+
+        AttemptData(int attempts, LocalDateTime lastAttempt) {
+            this.attempts = attempts;
+            this.lastAttempt = lastAttempt;
+        }
+    }
+
+    private final Map<String, AttemptData> attemptsCache = new ConcurrentHashMap<>();
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -32,28 +45,57 @@ public class RateLimitFilter extends OncePerRequestFilter {
                 && "POST".equalsIgnoreCase(request.getMethod())) {
 
             String clientIp = request.getRemoteAddr();
+            LocalDateTime now = LocalDateTime.now();
 
-            int attempts = attemptsCache.getOrDefault(clientIp, 0);
+            AttemptData data = attemptsCache.get(clientIp);
 
-            if (attempts >= MAX_ATTEMPTS) {
+            if (data != null) {
 
-                response.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
-                response.setContentType("application/json");
+                long minutesSinceLast =
+                        Duration.between(data.lastAttempt, now).toMinutes();
 
-                response.getWriter().write("""
-                    {
-                      "error":"TOO_MANY_REQUESTS",
-                      "message":"Too many login attempts",
-                      "status":429,
-                      "timestamp":"%s"
-                    }
-                    """.formatted(LocalDateTime.now()));
+                if (minutesSinceLast >= BLOCK_DURATION_MINUTES) {
+                    // reset après expiration
+                    attemptsCache.remove(clientIp);
+                } else if (data.attempts >= MAX_ATTEMPTS) {
 
-                return; // 🔴 BLOQUE ICI
+                    response.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
+                    response.setContentType("application/json");
+
+                    response.getWriter().write("""
+                        {
+                          "error":"TOO_MANY_REQUESTS",
+                          "message":"Too many login attempts. Try again later.",
+                          "status":429
+                        }
+                        """);
+
+                    return;
+                }
             }
 
-            // 🔥 INCRÉMENTATION AVANT AUTH
-            attemptsCache.put(clientIp, attempts + 1);
+            // 🔥 On laisse passer l’auth
+            filterChain.doFilter(request, response);
+
+            // 🔥 Après traitement → si échec seulement
+            if (response.getStatus() == HttpStatus.UNAUTHORIZED.value()) {
+
+                attemptsCache.compute(clientIp, (ip, existing) -> {
+                    if (existing == null) {
+                        return new AttemptData(1, now);
+                    }
+                    existing.attempts++;
+                    existing.lastAttempt = now;
+                    return existing;
+                });
+
+            } else if (response.getStatus() == HttpStatus.OK.value()) {
+
+                // reset après succès
+                attemptsCache.remove(clientIp);
+            }
+
+            return;
         }
 
         filterChain.doFilter(request, response);

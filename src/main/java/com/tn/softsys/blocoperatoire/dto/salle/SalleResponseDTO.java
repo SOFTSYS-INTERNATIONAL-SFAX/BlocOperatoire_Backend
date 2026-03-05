@@ -10,7 +10,9 @@ import java.util.UUID;
 public class SalleResponseDTO {
 
     private UUID salleId;
+
     private String nom;
-    private String type;
-    private Boolean disponible;
+    private String etageBatiment;
+    private String equipements;
+    private Boolean active;
 }

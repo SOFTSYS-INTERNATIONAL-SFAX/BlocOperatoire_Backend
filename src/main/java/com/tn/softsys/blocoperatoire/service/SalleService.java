@@ -1,14 +1,16 @@
 package com.tn.softsys.blocoperatoire.service;
 
 import com.tn.softsys.blocoperatoire.domain.Salle;
-import com.tn.softsys.blocoperatoire.dto.salle.*;
+import com.tn.softsys.blocoperatoire.dto.salle.SalleRequestDTO;
+import com.tn.softsys.blocoperatoire.dto.salle.SalleResponseDTO;
 import com.tn.softsys.blocoperatoire.exception.ResourceNotFoundException;
 import com.tn.softsys.blocoperatoire.mapper.SalleMapper;
 import com.tn.softsys.blocoperatoire.repository.SalleRepository;
 
 import lombok.RequiredArgsConstructor;
 
-import org.springframework.data.domain.*;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,14 +24,20 @@ public class SalleService {
     private final SalleRepository salleRepository;
     private final SalleMapper mapper;
 
-    /* CREATE */
+    /* =====================================================
+       CREATE
+       ===================================================== */
 
     public SalleResponseDTO create(SalleRequestDTO dto) {
+
         Salle salle = mapper.toEntity(dto);
+
         return mapper.toDTO(salleRepository.save(salle));
     }
 
-    /* UPDATE */
+    /* =====================================================
+       UPDATE
+       ===================================================== */
 
     public SalleResponseDTO update(UUID id, SalleRequestDTO dto) {
 
@@ -42,7 +50,9 @@ public class SalleService {
         return mapper.toDTO(salleRepository.save(existing));
     }
 
-    /* GET ONE */
+    /* =====================================================
+       READ ONE
+       ===================================================== */
 
     @Transactional(readOnly = true)
     public SalleResponseDTO getById(UUID id) {
@@ -54,34 +64,36 @@ public class SalleService {
         return mapper.toDTO(salle);
     }
 
-    /* SEARCH + PAGINATION */
+    /* =====================================================
+       SEARCH + PAGINATION
+       ===================================================== */
 
     @Transactional(readOnly = true)
     public Page<SalleResponseDTO> search(
             String nom,
-            String type,
-            Boolean disponible,
+            String etageBatiment,
+            Boolean active,
             Pageable pageable
     ) {
 
         Page<Salle> page;
 
-        if (nom != null && type != null) {
+        if (nom != null && etageBatiment != null) {
             page = salleRepository
-                    .findByNomContainingIgnoreCaseAndTypeContainingIgnoreCase(
-                            nom, type, pageable);
+                    .findByNomContainingIgnoreCaseAndEtageBatimentContainingIgnoreCase(
+                            nom, etageBatiment, pageable);
         }
         else if (nom != null) {
             page = salleRepository
                     .findByNomContainingIgnoreCase(nom, pageable);
         }
-        else if (type != null) {
+        else if (etageBatiment != null) {
             page = salleRepository
-                    .findByTypeContainingIgnoreCase(type, pageable);
+                    .findByEtageBatimentContainingIgnoreCase(etageBatiment, pageable);
         }
-        else if (disponible != null) {
+        else if (active != null) {
             page = salleRepository
-                    .findByDisponible(disponible, pageable);
+                    .findByActive(active, pageable);
         }
         else {
             page = salleRepository.findAll(pageable);
@@ -90,20 +102,24 @@ public class SalleService {
         return page.map(mapper::toDTO);
     }
 
-    /* PATCH DISPONIBILITE */
+    /* =====================================================
+       PATCH ACTIVE (toggle formulaire)
+       ===================================================== */
 
-    public SalleResponseDTO updateDisponibilite(UUID id, Boolean disponible) {
+    public SalleResponseDTO updateActive(UUID id, Boolean active) {
 
         Salle salle = salleRepository.findById(id)
                 .orElseThrow(() ->
                         new ResourceNotFoundException("Salle not found"));
 
-        salle.setDisponible(disponible);
+        salle.setActive(active);
 
         return mapper.toDTO(salleRepository.save(salle));
     }
 
-    /* DELETE */
+    /* =====================================================
+       DELETE
+       ===================================================== */
 
     public void delete(UUID id) {
 
