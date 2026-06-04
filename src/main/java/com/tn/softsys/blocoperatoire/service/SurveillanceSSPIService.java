@@ -5,7 +5,7 @@ import com.tn.softsys.blocoperatoire.dto.surveillance.SurveillanceRequestDTO;
 import com.tn.softsys.blocoperatoire.dto.surveillance.SurveillanceResponseDTO;
 import com.tn.softsys.blocoperatoire.exception.ResourceNotFoundException;
 
-import com.tn.softsys.blocoperatoire.mapper.SurveillanceMapper;
+import com.tn.softsys.blocoperatoire.mapper.SurveillanceSSPIMapper;
 import com.tn.softsys.blocoperatoire.repository.SSPIRepository;
 import com.tn.softsys.blocoperatoire.repository.SurveillanceSSPIRepository;
 import lombok.RequiredArgsConstructor;
@@ -24,7 +24,7 @@ public class SurveillanceService {
 
     private final SurveillanceSSPIRepository repository;
     private final SSPIRepository sspiRepository;
-    private final SurveillanceMapper mapper;
+    private final SurveillanceSSPIMapper mapper;
 
     public SurveillanceResponseDTO create(SurveillanceRequestDTO dto) {
 
