@@ -10,7 +10,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 
 @Entity
 @Getter
-@Setter
+@Setter(AccessLevel.NONE) // 🔒 immutabilité contrôlée
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -19,7 +19,9 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
         indexes = {
                 @Index(name = "idx_audit_user", columnList = "user_id"),
                 @Index(name = "idx_audit_timestamp", columnList = "timestamp"),
-                @Index(name = "idx_audit_action", columnList = "action")
+                @Index(name = "idx_audit_action", columnList = "action"),
+                @Index(name = "idx_audit_module", columnList = "module"),
+                @Index(name = "idx_audit_reference", columnList = "reference_id")
         }
 )
 public class AuditLog {
@@ -28,38 +30,83 @@ public class AuditLog {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID logId;
 
-    @ManyToOne(optional = true)
-    @JoinColumn(name = "user_id", nullable = false)
+    /* ================= USER ================= */
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
     @JsonIgnore
     private User user;
 
-    @Column(nullable = false)
+    /* ================= ACTION ================= */
+
+    @Column(nullable = false, length = 100)
     private String action;
-    // ex: CREATE_PATIENT, DELETE_INTERVENTION, LOGIN_SUCCESS
 
-    @Column(nullable = false)
+    /* ================= MODULE ================= */
+
+    @Column(nullable = false, length = 100)
     private String module;
-    // ex: PATIENT, INTERVENTION, AUTHENTICATION
 
-    @Column(nullable = false)
+    /* ================= BUSINESS REFERENCE ================= */
+
+    @Column(name = "reference_id")
+    private UUID referenceId; // scoreId / interventionId / patientId
+
+    /* ================= TIMESTAMP ================= */
+
+    @Column(nullable = false, updatable = false)
     private LocalDateTime timestamp;
 
+    /* ================= IP ================= */
+
+    @Column(length = 45)
     private String ipAddress;
 
-    @Column(length = 2000)
+    /* ================= DETAILS ================= */
+
+    @Column(columnDefinition = "TEXT")
     private String details;
+
+    /* ================= INTEGRITY HASH (OPTIONNEL MAIS RECOMMANDÉ) ================= */
+
+    @Column(length = 64)
+    private String integrityHash;
+
+    /* ================= LIFECYCLE ================= */
 
     @PrePersist
     public void prePersist() {
-        timestamp = LocalDateTime.now();
+
+        this.timestamp = LocalDateTime.now();
+
+        // Hash simple d'intégrité
+        this.integrityHash = generateIntegrityHash();
     }
 
-    /*
-     * IMPORTANT :
-     * On empêche toute mise à jour.
-     */
     @PreUpdate
     public void preventUpdate() {
-        throw new UnsupportedOperationException("AuditLog is immutable and cannot be updated");
+        throw new UnsupportedOperationException(
+                "AuditLog is immutable and cannot be updated"
+        );
+    }
+
+    @PreRemove
+    public void preventDelete() {
+        throw new UnsupportedOperationException(
+                "AuditLog cannot be deleted"
+        );
+    }
+
+    /* ================= PRIVATE ================= */
+
+    private String generateIntegrityHash() {
+
+        String base = String.valueOf(timestamp)
+                + action
+                + module
+                + String.valueOf(referenceId)
+                + String.valueOf(details);
+
+        return Integer.toHexString(base.hashCode());
     }
 }

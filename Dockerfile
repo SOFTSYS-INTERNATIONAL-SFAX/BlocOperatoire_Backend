@@ -14,6 +14,7 @@ WORKDIR /app
 
 COPY --from=builder /app/target/*.jar app.jar
 
+# Dossier de stockage des fichiers uploadés (monté en volume)
 VOLUME ["/app/uploads"]
 
 EXPOSE 8080

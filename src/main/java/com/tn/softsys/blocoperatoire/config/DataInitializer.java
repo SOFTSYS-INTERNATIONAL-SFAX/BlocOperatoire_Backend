@@ -12,6 +12,9 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.Map;
 import java.util.Set;
 
 @Component
@@ -20,92 +23,134 @@ import java.util.Set;
 public class DataInitializer implements CommandLineRunner {
 
     private final RoleRepository roleRepository;
+    private final PermissionRepository permissionRepository;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
-    private final PermissionRepository permissionRepository;
 
     @Override
     public void run(String... args) {
-
         log.info("=== DataInitializer started ===");
 
-        /* ========================
-           0️⃣ PERMISSIONS
-        ======================== */
+        Map<String, String> roleDefinitions = new LinkedHashMap<>();
+        roleDefinitions.put("ADMIN", "Super Administrator");
+        roleDefinitions.put("ADMINISTRATEUR_SYSTEME", "Administrateur systeme hospitalier");
+        roleDefinitions.put("DIRECTION_MEDICALE", "Direction medicale");
+        roleDefinitions.put("RESPONSABLE_QUALITE", "Responsable qualite");
+        roleDefinitions.put("CADRE_BLOC", "Cadre de bloc");
+        roleDefinitions.put("MEDECIN", "Medecin avec acces clinique transverse");
+        roleDefinitions.put("CHIRURGIEN", "Medecin chirurgien");
+        roleDefinitions.put("ANESTHESISTE", "Medecin anesthesiste");
+        roleDefinitions.put("REANIMATEUR", "Medecin reanimateur");
+        roleDefinitions.put("INFIRMIER", "Infirmier");
+        roleDefinitions.put("IADE", "Infirmier anesthesiste diplome d'Etat");
+        roleDefinitions.put("IBODE", "Infirmier de bloc operatoire diplome d'Etat");
 
-        Permission pPatientRead   = perm("PATIENT_READ",         "Lire les patients");
-        Permission pPatientWrite  = perm("PATIENT_WRITE",        "Modifier les patients");
-        Permission pPlanningRead  = perm("PLANNING_READ",        "Lire le planning");
-        Permission pOmsValidate   = perm("OMS_VALIDATE",         "Valider checklist OMS");
-        Permission pScoreValidate = perm("SCORE_VALIDATE",       "Valider les scores médicaux");
-        Permission pFhirCreate    = perm("FHIR_RESOURCE_CREATE", "Créer ressource FHIR");
-        Permission pUserManage    = perm("USER_MANAGE",          "Gérer les utilisateurs");
-        Permission pMorgueAccess  = perm("MORGUE_ACCESS",        "Accéder à la morgue");
-        Permission pAuditRead     = perm("AUDIT_READ",           "Lire les audits");
+        Map<String, Role> roles = new LinkedHashMap<>();
+        roleDefinitions.forEach((code, description) -> roles.put(code, ensureRole(code, description)));
 
-        log.info("Permissions initialized.");
+        Map<String, String> permissionDefinitions = new LinkedHashMap<>();
+        permissionDefinitions.put("USER_MANAGE", "Administrer les utilisateurs et leurs habilitations");
+        permissionDefinitions.put("USER_DIRECTORY_READ", "Consulter l'annuaire du personnel");
+        permissionDefinitions.put("AUDIT_READ", "Consulter les journaux d'audit");
+        permissionDefinitions.put("FHIR_RESOURCE_CREATE", "Creer une ressource FHIR");
+        permissionDefinitions.put("FHIR_RESOURCE_READ", "Consulter les ressources FHIR");
+        permissionDefinitions.put("PATIENT_READ", "Consulter les dossiers patients");
+        permissionDefinitions.put("PATIENT_WRITE", "Modifier les dossiers patients");
+        permissionDefinitions.put("PLANNING_READ", "Consulter le planning operatoire");
+        permissionDefinitions.put("PLANNING_WRITE", "Modifier le planning operatoire");
+        permissionDefinitions.put("OMS_VALIDATE", "Valider les etapes de la checklist OMS");
+        permissionDefinitions.put("SCORE_VALIDATE", "Saisir et valider les scores cliniques");
+        permissionDefinitions.put("MORGUE_ACCESS", "Acceder au module morgue");
 
-        /* ========================
-           1️⃣ CREATION DES ROLES
-        ======================== */
+        Map<String, Permission> permissions = new LinkedHashMap<>();
+        permissionDefinitions.forEach((code, description) -> permissions.put(code, ensurePermission(code, description)));
 
-        Role adminRole = roleRepository.findByNom("ADMIN")
-                .orElseGet(() -> {
-                    log.info("Creating role: ADMIN");
-                    return roleRepository.save(
-                            Role.builder()
-                                    .nom("ADMIN")
-                                    .description("Super Administrator")
-                                    .build()
-                    );
-                });
+        assignPermissions(roles.get("ADMIN"), permissions.values());
+        assignPermissions(
+                roles.get("ADMINISTRATEUR_SYSTEME"),
+                Set.of(
+                        permissions.get("USER_MANAGE"),
+                        permissions.get("USER_DIRECTORY_READ"),
+                        permissions.get("AUDIT_READ"),
+                        permissions.get("FHIR_RESOURCE_READ"),
+                        permissions.get("PATIENT_READ"),
+                        permissions.get("PLANNING_READ")
+                )
+        );
+        assignPermissions(
+                roles.get("DIRECTION_MEDICALE"),
+                Set.of(
+                        permissions.get("USER_DIRECTORY_READ"),
+                        permissions.get("AUDIT_READ"),
+                        permissions.get("FHIR_RESOURCE_READ"),
+                        permissions.get("PATIENT_READ"),
+                        permissions.get("PLANNING_READ")
+                )
+        );
+        assignPermissions(
+                roles.get("RESPONSABLE_QUALITE"),
+                Set.of(
+                        permissions.get("USER_DIRECTORY_READ"),
+                        permissions.get("AUDIT_READ"),
+                        permissions.get("FHIR_RESOURCE_READ"),
+                        permissions.get("PATIENT_READ"),
+                        permissions.get("PLANNING_READ"),
+                        permissions.get("OMS_VALIDATE")
+                )
+        );
+        assignPermissions(
+                roles.get("CADRE_BLOC"),
+                Set.of(
+                        permissions.get("USER_DIRECTORY_READ"),
+                        permissions.get("PATIENT_READ"),
+                        permissions.get("PLANNING_READ"),
+                        permissions.get("PLANNING_WRITE"),
+                        permissions.get("OMS_VALIDATE"),
+                        permissions.get("FHIR_RESOURCE_READ")
+                )
+        );
 
-        Role chirurgienRole = roleRepository.findByNom("CHIRURGIEN")
-                .orElseGet(() -> roleRepository.save(
-                        Role.builder()
-                                .nom("CHIRURGIEN")
-                                .description("Médecin Chirurgien")
-                                .build()
-                ));
+        Set<Permission> clinicianPermissions = Set.of(
+                permissions.get("USER_DIRECTORY_READ"),
+                permissions.get("FHIR_RESOURCE_CREATE"),
+                permissions.get("FHIR_RESOURCE_READ"),
+                permissions.get("PATIENT_READ"),
+                permissions.get("PATIENT_WRITE"),
+                permissions.get("PLANNING_READ"),
+                permissions.get("OMS_VALIDATE"),
+                permissions.get("SCORE_VALIDATE")
+        );
+        assignPermissions(roles.get("MEDECIN"), clinicianPermissions);
+        assignPermissions(roles.get("CHIRURGIEN"), clinicianPermissions);
+        assignPermissions(roles.get("ANESTHESISTE"), clinicianPermissions);
+        assignPermissions(roles.get("REANIMATEUR"), clinicianPermissions);
 
-        Role anesthesisteRole = roleRepository.findByNom("ANESTHESISTE")
-                .orElseGet(() -> roleRepository.save(
-                        Role.builder()
-                                .nom("ANESTHESISTE")
-                                .description("Médecin Anesthésiste")
-                                .build()
-                ));
+        Set<Permission> nursingPermissions = Set.of(
+                permissions.get("USER_DIRECTORY_READ"),
+                permissions.get("FHIR_RESOURCE_READ"),
+                permissions.get("PATIENT_READ"),
+                permissions.get("PLANNING_READ"),
+                permissions.get("OMS_VALIDATE"),
+                permissions.get("SCORE_VALIDATE"),
+                permissions.get("MORGUE_ACCESS")
+        );
+        assignPermissions(roles.get("INFIRMIER"), nursingPermissions);
+        assignPermissions(roles.get("IADE"), nursingPermissions);
+        assignPermissions(
+                roles.get("IBODE"),
+                Set.of(
+                        permissions.get("USER_DIRECTORY_READ"),
+                        permissions.get("FHIR_RESOURCE_READ"),
+                        permissions.get("PATIENT_READ"),
+                        permissions.get("PLANNING_READ"),
+                        permissions.get("OMS_VALIDATE"),
+                        permissions.get("MORGUE_ACCESS")
+                )
+        );
 
-        // Assign permissions to roles (idempotent — reload to ensure Hibernate-managed collection)
-        adminRole = roleRepository.findByNom("ADMIN").orElseThrow();
-        chirurgienRole = roleRepository.findByNom("CHIRURGIEN").orElseThrow();
-        anesthesisteRole = roleRepository.findByNom("ANESTHESISTE").orElseThrow();
-
-        boolean adminUpdated = adminRole.getPermissions().addAll(Set.of(
-                pPatientRead, pPatientWrite, pPlanningRead, pOmsValidate,
-                pScoreValidate, pFhirCreate, pUserManage, pMorgueAccess, pAuditRead
-        ));
-        if (adminUpdated) roleRepository.save(adminRole);
-
-        boolean chirurgienUpdated = chirurgienRole.getPermissions().addAll(Set.of(
-                pPatientRead, pPatientWrite, pPlanningRead,
-                pOmsValidate, pScoreValidate, pFhirCreate
-        ));
-        if (chirurgienUpdated) roleRepository.save(chirurgienRole);
-
-        boolean anesthesisteUpdated = anesthesisteRole.getPermissions().addAll(Set.of(
-                pPatientRead, pPlanningRead, pOmsValidate, pScoreValidate
-        ));
-        if (anesthesisteUpdated) roleRepository.save(anesthesisteRole);
-
-        log.info("Roles initialized.");
-
-        /* ========================
-           2️⃣ CREATION ADMIN USER
-        ======================== */
+        log.info("Roles and permissions initialized.");
 
         if (!userRepository.existsByEmail("admin@bloc.com")) {
-
             log.info("Creating admin user...");
 
             User admin = User.builder()
@@ -117,13 +162,11 @@ public class DataInitializer implements CommandLineRunner {
                     .accountNonLocked(true)
                     .failedAttempts(0)
                     .mfaEnabled(false)
-                    .roles(Set.of(adminRole))
+                    .roles(Set.of(roles.get("ADMIN")))
                     .build();
 
             userRepository.save(admin);
-
             log.info("Admin user created successfully.");
-
         } else {
             log.info("Admin user already exists.");
         }
@@ -131,13 +174,54 @@ public class DataInitializer implements CommandLineRunner {
         log.info("=== DataInitializer completed ===");
     }
 
-    private Permission perm(String code, String description) {
+    private Role ensureRole(String code, String description) {
+        return roleRepository.findByNom(code)
+                .map(existing -> {
+                    if (!description.equals(existing.getDescription())) {
+                        existing.setDescription(description);
+                        return roleRepository.save(existing);
+                    }
+                    return existing;
+                })
+                .orElseGet(() -> {
+                    log.info("Creating role: {}", code);
+                    return roleRepository.save(
+                            Role.builder()
+                                    .nom(code)
+                                    .description(description)
+                                    .build()
+                    );
+                });
+    }
+
+    private Permission ensurePermission(String code, String description) {
         return permissionRepository.findByCode(code)
+                .map(existing -> {
+                    if (!description.equals(existing.getDescription())) {
+                        existing.setDescription(description);
+                        return permissionRepository.save(existing);
+                    }
+                    return existing;
+                })
                 .orElseGet(() -> permissionRepository.save(
                         Permission.builder()
                                 .code(code)
                                 .description(description)
                                 .build()
                 ));
+    }
+
+    private void assignPermissions(Role role, Iterable<Permission> grantedPermissions) {
+        Set<Permission> normalized = new LinkedHashSet<>();
+        grantedPermissions.forEach(permission -> {
+            if (permission != null) {
+                normalized.add(permission);
+            }
+        });
+
+        if (!normalized.equals(role.getPermissions())) {
+            role.setPermissions(normalized);
+            roleRepository.save(role);
+        }
     }
 }

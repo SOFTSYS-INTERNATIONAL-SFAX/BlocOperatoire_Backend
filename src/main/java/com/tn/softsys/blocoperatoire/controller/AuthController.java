@@ -5,9 +5,14 @@ import com.tn.softsys.blocoperatoire.dto.auth.*;
 import com.tn.softsys.blocoperatoire.repository.*;
 import com.tn.softsys.blocoperatoire.security.JwtService;
 import com.tn.softsys.blocoperatoire.service.*;
+import java.util.Locale;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -16,7 +21,7 @@ import org.springframework.security.authentication.*;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.*;
+import java.util.Set;
 
 @Slf4j
 @RestController
@@ -32,30 +37,36 @@ public class AuthController {
     private final AuditLogService auditLogService;
     private final RefreshTokenService refreshTokenService;
     private final MfaService mfaService;
+    private final HttpServletRequest httpRequest;
 
-    /* ================= LOGIN ================= */
+    /* =====================================================
+       LOGIN
+    ===================================================== */
 
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(
-            @Valid @RequestBody AuthRequest request,
-            HttpServletRequest httpRequest
+            @Valid @RequestBody AuthRequest request
     ) {
 
+        String ip = httpRequest.getRemoteAddr();
+
         try {
+
             authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(
                             request.getEmail(),
                             request.getPassword()
                     )
             );
+
         } catch (BadCredentialsException ex) {
 
             auditLogService.logFailedAttempt(
                     request.getEmail(),
                     "LOGIN_FAILED",
                     "AUTHENTICATION",
-                    httpRequest.getRemoteAddr(),
-                    "Invalid credentials"
+                    "Invalid credentials",
+                    ip
             );
 
             return ResponseEntity.status(401).build();
@@ -68,37 +79,79 @@ public class AuthController {
 
             auditLogService.log(
                     user,
-                    "MFA_REQUIRED",
+                    "LOGIN_MFA_REQUIRED",
                     "AUTHENTICATION",
-                    httpRequest.getRemoteAddr(),
-                    "Second factor required"
+                    user.getUserId(),
+                    "MFA required before issuing tokens",
+                    ip
             );
 
             return ResponseEntity.status(206)
-                    .body(AuthResponse.builder()
-                            .mfaRequired(true)
-                            .tokenType("Bearer")
-                            .build());
+                    .body(
+                            AuthResponse.builder()
+                                    .mfaRequired(true)
+                                    .tokenType("Bearer")
+                                    .build()
+                    );
         }
 
-        return generateTokens(user, httpRequest, "LOGIN_SUCCESS");
+        return generateTokens(user, "LOGIN_SUCCESS", ip);
     }
 
-    /* ================= REGISTER ================= */
+    /* =====================================================
+       VERIFY MFA
+    ===================================================== */
+
+    @PostMapping("/verify-mfa")
+    public ResponseEntity<AuthResponse> verifyMfa(
+            @Valid @RequestBody MfaVerificationRequest request
+    ) {
+
+        String ip = httpRequest.getRemoteAddr();
+
+        User user = userRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        if (!Boolean.TRUE.equals(user.getMfaEnabled())) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        boolean valid = mfaService.verifyCode(
+                user.getMfaSecret(),
+                request.getCode()
+        );
+
+        if (!valid) {
+
+            auditLogService.logFailedAttempt(
+                    request.getEmail(),
+                    "MFA_FAILED",
+                    "AUTHENTICATION",
+                    "Invalid MFA code",
+                    ip
+            );
+
+            return ResponseEntity.status(401).build();
+        }
+
+        return generateTokens(user, "MFA_SUCCESS", ip);
+    }
+
+    /* =====================================================
+       REGISTER
+    ===================================================== */
 
     @PostMapping("/register")
     public ResponseEntity<AuthResponse> register(
-            @Valid @RequestBody RegisterRequest request,
-            HttpServletRequest httpRequest
+            @Valid @RequestBody RegisterRequest request
     ) {
+        String ip = httpRequest.getRemoteAddr();
 
         if (userRepository.existsByEmail(request.getEmail())) {
             return ResponseEntity.badRequest().build();
         }
 
-        // 🔥 MODIFICATION ICI → ADMIN AU LIEU DE USER
-        Role adminRole = roleRepository.findByNom("ADMIN")
-                .orElseThrow(() -> new RuntimeException("ADMIN role not found"));
+        Set<Role> roles = resolveRoles(request);
 
         User user = User.builder()
                 .nom(request.getNom())
@@ -107,21 +160,57 @@ public class AuthController {
                 .password(passwordEncoder.encode(request.getPassword()))
                 .enabled(true)
                 .accountNonLocked(true)
-                .roles(Set.of(adminRole))
+                .roles(roles)
                 .build();
 
         userRepository.save(user);
 
-        return generateTokens(user, httpRequest, "REGISTER");
+        auditLogService.log(
+                user,
+                "REGISTER_SUCCESS",
+                "AUTHENTICATION",
+                user.getUserId(),
+                "New user registered",
+                ip
+        );
+
+        return generateTokens(user, "REGISTER_LOGIN_SUCCESS", ip);
     }
 
-    /* ================= REFRESH ================= */
+    private Set<Role> resolveRoles(RegisterRequest request) {
+        Set<String> requestedRoles = request.getRoles() == null
+                ? Set.of()
+                : request.getRoles().stream()
+                .filter(Objects::nonNull)
+                .map(String::trim)
+                .filter(s -> !s.isBlank())
+                .map(s -> s.toUpperCase(Locale.ROOT))
+                .collect(Collectors.toSet());
+
+        if (requestedRoles.isEmpty()) {
+            Role defaultRole = roleRepository.findByNom("USER")
+                    .or(() -> roleRepository.findByNom("INFIRMIER"))
+                    .orElseThrow(() -> new RuntimeException("No default role found (USER/INFIRMIER)"));
+            return Set.of(defaultRole);
+        }
+
+        return requestedRoles.stream()
+                .map(roleName -> roleRepository.findByNom(roleName)
+                        .orElseThrow(() -> new RuntimeException("Role not found: " + roleName)))
+                .collect(Collectors.toSet());
+    }
+
+
+    /* =====================================================
+       REFRESH TOKEN
+    ===================================================== */
 
     @PostMapping("/refresh")
     public ResponseEntity<AuthResponse> refreshToken(
-            @RequestHeader("Authorization") String authHeader,
-            HttpServletRequest httpRequest
+            @RequestHeader("Authorization") String authHeader
     ) {
+
+        String ip = httpRequest.getRemoteAddr();
 
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             return ResponseEntity.badRequest().build();
@@ -138,21 +227,35 @@ public class AuthController {
 
         String newAccessToken = jwtService.generateAccessToken(user);
 
+        auditLogService.log(
+                user,
+                "REFRESH_TOKEN",
+                "AUTHENTICATION",
+                user.getUserId(),
+                "Access token refreshed",
+                ip
+        );
+
         return ResponseEntity.ok(
                 AuthResponse.builder()
                         .accessToken(newAccessToken)
                         .refreshToken(refreshToken.getToken())
                         .tokenType("Bearer")
+                        .mfaRequired(false)
                         .build()
         );
     }
 
-    /* ================= LOGOUT ================= */
+    /* =====================================================
+       LOGOUT
+    ===================================================== */
 
     @PostMapping("/logout")
     public ResponseEntity<Void> logout(
             @RequestHeader("Authorization") String authHeader
     ) {
+
+        String ip = httpRequest.getRemoteAddr();
 
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             return ResponseEntity.badRequest().build();
@@ -160,17 +263,33 @@ public class AuthController {
 
         String refreshToken = authHeader.substring(7);
 
+        RefreshToken token =
+                refreshTokenService.findByToken(refreshToken);
+
+        User user = token.getUser();
+
         refreshTokenService.deleteByToken(refreshToken);
+
+        auditLogService.log(
+                user,
+                "LOGOUT",
+                "AUTHENTICATION",
+                user.getUserId(),
+                "User logged out and refresh token invalidated",
+                ip
+        );
 
         return ResponseEntity.ok().build();
     }
 
-    /* ================= TOKEN GENERATOR ================= */
+    /* =====================================================
+       GENERATE TOKENS
+    ===================================================== */
 
     private ResponseEntity<AuthResponse> generateTokens(
             User user,
-            HttpServletRequest request,
-            String action
+            String auditAction,
+            String ip
     ) {
 
         String accessToken = jwtService.generateAccessToken(user);
@@ -178,10 +297,20 @@ public class AuthController {
         RefreshToken refreshToken =
                 refreshTokenService.createRefreshToken(user.getEmail());
 
+        auditLogService.log(
+                user,
+                auditAction,
+                "AUTHENTICATION",
+                user.getUserId(),
+                "Access and refresh tokens generated",
+                ip
+        );
+
         return ResponseEntity.ok(
                 AuthResponse.builder()
                         .accessToken(accessToken)
                         .refreshToken(refreshToken.getToken())
+                        .mfaRequired(false)
                         .tokenType("Bearer")
                         .build()
         );

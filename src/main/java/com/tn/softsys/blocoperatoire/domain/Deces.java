@@ -30,4 +30,6 @@ public class Deces {
     // 1 → 1 CaseMortuaire
     @OneToOne(mappedBy = "deces", cascade = CascadeType.ALL)
     private CaseMortuaire caseMortuaire;
+    @OneToOne(mappedBy = "deces", cascade = CascadeType.ALL)
+    private Autopsie autopsie;
 }

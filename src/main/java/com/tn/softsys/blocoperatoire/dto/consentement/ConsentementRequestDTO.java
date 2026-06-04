@@ -1,5 +1,6 @@
 package com.tn.softsys.blocoperatoire.dto.consentement;
 
+import com.tn.softsys.blocoperatoire.domain.ConsentementStatut;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
@@ -22,6 +23,7 @@ public class ConsentementRequestDTO {
     @NotNull
     private LocalDateTime date;
 
-    @NotNull
     private Boolean valide;
+
+    private ConsentementStatut statut;
 }

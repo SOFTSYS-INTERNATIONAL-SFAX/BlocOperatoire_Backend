@@ -6,7 +6,6 @@ import com.tn.softsys.blocoperatoire.dto.planning.PlanningBlocResponseDTO;
 import com.tn.softsys.blocoperatoire.exception.ResourceNotFoundException;
 import com.tn.softsys.blocoperatoire.mapper.PlanningBlocMapper;
 import com.tn.softsys.blocoperatoire.repository.PlanningBlocRepository;
-
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -21,30 +20,37 @@ import java.util.UUID;
 @Transactional
 public class PlanningBlocService {
 
+    private static final String MODULE = "PLANIFICATION_BLOC";
+
     private final PlanningBlocRepository repository;
     private final PlanningBlocMapper mapper;
+    private final AuditLogService auditLogService;
+    private final AuditContextService auditContextService;
 
-    // CREATE
     public PlanningBlocResponseDTO create(PlanningBlocRequestDTO dto) {
-
         PlanningBloc entity = PlanningBloc.builder()
                 .date(dto.getDate())
                 .build();
 
-        return mapper.toDTO(repository.save(entity));
+        PlanningBloc saved = repository.save(entity);
+
+        audit(
+                "PLANNING_BLOC_CREATE",
+                saved.getPlanningId(),
+                "Creation planning bloc date=" + saved.getDate()
+        );
+
+        return mapper.toDTO(saved);
     }
 
-    // GET BY ID
     @Transactional(readOnly = true)
     public PlanningBlocResponseDTO getById(UUID id) {
-
         PlanningBloc entity = repository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("PlanningBloc not found"));
 
         return mapper.toDTO(entity);
     }
 
-    // SEARCH + PAGINATION
     @Transactional(readOnly = true)
     public Page<PlanningBlocResponseDTO> search(
             LocalDateTime from,
@@ -62,24 +68,44 @@ public class PlanningBlocService {
         return page.map(mapper::toDTO);
     }
 
-    // UPDATE
     public PlanningBlocResponseDTO update(UUID id, PlanningBlocRequestDTO dto) {
-
         PlanningBloc entity = repository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("PlanningBloc not found"));
 
         entity.setDate(dto.getDate());
 
-        return mapper.toDTO(repository.save(entity));
+        PlanningBloc saved = repository.save(entity);
+
+        audit(
+                "PLANNING_BLOC_UPDATE",
+                saved.getPlanningId(),
+                "Mise a jour planning bloc date=" + saved.getDate()
+        );
+
+        return mapper.toDTO(saved);
     }
 
-    // DELETE
     public void delete(UUID id) {
+        PlanningBloc entity = repository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("PlanningBloc not found"));
 
-        if (!repository.existsById(id)) {
-            throw new ResourceNotFoundException("PlanningBloc not found");
-        }
+        audit(
+                "PLANNING_BLOC_DELETE",
+                entity.getPlanningId(),
+                "Suppression planning bloc date=" + entity.getDate()
+        );
 
         repository.deleteById(id);
+    }
+
+    private void audit(String action, UUID referenceId, String details) {
+        auditLogService.log(
+                auditContextService.getCurrentUserOrNull(),
+                action,
+                MODULE,
+                referenceId,
+                details,
+                auditContextService.getClientIp()
+        );
     }
 }

@@ -1,37 +1,45 @@
 package com.tn.softsys.blocoperatoire.repository;
 
 import com.tn.softsys.blocoperatoire.domain.Patient;
+import com.tn.softsys.blocoperatoire.domain.Sexe;
+import com.tn.softsys.blocoperatoire.domain.GroupeSanguin;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
-import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-public interface PatientRepository extends JpaRepository<Patient, UUID> {
+public interface PatientRepository extends
+        JpaRepository<Patient, UUID>,
+        JpaSpecificationExecutor<Patient> {
 
-    // ===============================
-    // Recherche FHIR
-    // ===============================
+    /* ================= IDENTIFICATION ================= */
+
     Optional<Patient> findByIdentiteFHIR(String identiteFHIR);
 
     boolean existsByIdentiteFHIR(String identiteFHIR);
 
-    // ===============================
-    // Pagination + Recherche
-    // ===============================
+    Optional<Patient> findByMrn(String mrn);
 
-    Page<Patient> findByNomContainingIgnoreCase(String nom, Pageable pageable);
+    boolean existsByMrn(String mrn);
 
-    Page<Patient> findByPrenomContainingIgnoreCase(String prenom, Pageable pageable);
+    /* ================= STATISTIQUES ================= */
 
-    Page<Patient> findByNomContainingIgnoreCaseAndPrenomContainingIgnoreCase(
-            String nom,
-            String prenom,
-            Pageable pageable
-    );
+    long countBySexe(Sexe sexe);
 
-    Page<Patient> findByDateNaissance(LocalDate dateNaissance, Pageable pageable);
+    long countByGroupeSanguin(GroupeSanguin groupeSanguin);
 
+    /* ================= LISTES RAPIDES ================= */
+
+    List<Patient> findTop10ByOrderByCreatedAtDesc();
+
+    List<Patient> findTop10ByOrderByUpdatedAtDesc();
+
+    List<Patient> findAllByArchivedFalse();
+
+    Page<Patient> findByArchivedTrue(Pageable pageable);
 }

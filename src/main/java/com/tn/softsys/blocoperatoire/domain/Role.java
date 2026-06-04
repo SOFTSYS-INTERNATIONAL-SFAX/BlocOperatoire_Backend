@@ -1,11 +1,15 @@
 package com.tn.softsys.blocoperatoire.domain;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
-import java.time.LocalDateTime;
-import java.util.*;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
+import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.Objects;
+import java.util.Set;
+import java.util.UUID;
+
 @Entity
 @Getter
 @Setter
@@ -20,25 +24,37 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 )
 public class Role {
 
+    /* ========================
+       PRIMARY KEY
+    ======================== */
+
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(name = "role_id")
     private UUID roleId;
+
+    /* ========================
+       ROLE INFO
+    ======================== */
 
     @Column(nullable = false, unique = true)
     private String nom;
 
+    @Column(length = 255)
     private String description;
 
     /* ========================
-       ROLE ↔ USER (N-N)
+       ROLE ↔ USER (ManyToMany)
+       côté inverse
     ======================== */
 
-    @ManyToMany(mappedBy = "roles")
+    @ManyToMany(mappedBy = "roles", fetch = FetchType.LAZY)
     @JsonIgnore
     private Set<User> users = new HashSet<>();
 
     /* ========================
-       ROLE ↔ PERMISSION (N-N)
+       ROLE ↔ PERMISSION (ManyToMany)
+       côté propriétaire
     ======================== */
 
     @ManyToMany(fetch = FetchType.EAGER)
@@ -49,30 +65,44 @@ public class Role {
     )
     private Set<Permission> permissions = new HashSet<>();
 
+    /* ========================
+       AUDIT FIELDS
+    ======================== */
+
+    @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
+
+    @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
+    /* ========================
+       ENTITY LIFECYCLE
+    ======================== */
+
     @PrePersist
-    public void prePersist() {
+    protected void onCreate() {
         createdAt = LocalDateTime.now();
     }
 
     @PreUpdate
-    public void preUpdate() {
+    protected void onUpdate() {
         updatedAt = LocalDateTime.now();
     }
 
-    /* Important pour ManyToMany */
+    /* ========================
+       EQUALS & HASHCODE
+       recommandé par Hibernate
+    ======================== */
 
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (!(o instanceof Role role)) return false;
-        return Objects.equals(nom, role.nom);
+        return roleId != null && roleId.equals(role.roleId);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(nom);
+        return Objects.hash(roleId);
     }
 }

@@ -1,46 +1,48 @@
 package com.tn.softsys.blocoperatoire.controller;
 
-import com.tn.softsys.blocoperatoire.domain.User;
-import com.tn.softsys.blocoperatoire.dto.user.CurrentAccessProfileDTO;
-import com.tn.softsys.blocoperatoire.repository.UserRepository;
+import com.tn.softsys.blocoperatoire.dto.accesscontrol.AccessControlOverviewResponseDTO;
+import com.tn.softsys.blocoperatoire.dto.accesscontrol.AccessControlRoleCreateRequestDTO;
+import com.tn.softsys.blocoperatoire.dto.accesscontrol.AccessControlRolePermissionUpdateRequestDTO;
+import com.tn.softsys.blocoperatoire.dto.accesscontrol.CurrentAccessProfileResponseDTO;
+import com.tn.softsys.blocoperatoire.service.AccessControlService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/access-control")
 @RequiredArgsConstructor
 public class AccessControlController {
 
-    private final UserRepository userRepository;
+    private final AccessControlService accessControlService;
+
+    @GetMapping("/overview")
+    @PreAuthorize("hasAuthority('USER_MANAGE')")
+    public AccessControlOverviewResponseDTO getOverview() {
+        return accessControlService.getOverview();
+    }
 
     @GetMapping("/current-profile")
-    public CurrentAccessProfileDTO currentProfile() {
-        String email = SecurityContextHolder.getContext()
-                .getAuthentication()
-                .getName();
+    @PreAuthorize("isAuthenticated()")
+    public CurrentAccessProfileResponseDTO getCurrentProfile() {
+        return accessControlService.getCurrentProfile();
+    }
 
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found: " + email));
+    @PostMapping("/roles")
+    @PreAuthorize("hasAuthority('USER_MANAGE')")
+    public AccessControlOverviewResponseDTO.RoleItem createRole(@Valid @RequestBody AccessControlRoleCreateRequestDTO dto) {
+        return accessControlService.createRole(dto);
+    }
 
-        List<String> roles = user.getRoles().stream()
-                .map(r -> r.getNom())
-                .toList();
-
-        List<String> permissionCodes = user.getRoles().stream()
-                .flatMap(r -> r.getPermissions().stream())
-                .map(p -> p.getCode())
-                .distinct()
-                .toList();
-
-        return CurrentAccessProfileDTO.builder()
-                .userId(user.getUserId().toString())
-                .email(user.getEmail())
-                .displayName((user.getPrenom() + " " + user.getNom()).trim())
-                .roles(roles)
-                .permissionCodes(permissionCodes)
-                .build();
+    @PutMapping("/roles/{roleId}/permissions")
+    @PreAuthorize("hasAuthority('USER_MANAGE')")
+    public AccessControlOverviewResponseDTO.RoleItem updateRolePermissions(
+            @PathVariable UUID roleId,
+            @Valid @RequestBody AccessControlRolePermissionUpdateRequestDTO dto
+    ) {
+        return accessControlService.updateRolePermissions(roleId, dto);
     }
 }

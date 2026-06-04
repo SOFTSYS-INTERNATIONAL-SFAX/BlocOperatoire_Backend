@@ -4,7 +4,10 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+
 @Entity
 @Getter
 @Setter
@@ -18,23 +21,48 @@ public class SSPI {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID sspiId;
 
+    @Column(nullable = false)
     private LocalDateTime heureEntree;
+
     private LocalDateTime heureSortie;
 
-    // 1 → 1 Intervention
+    @Column(length = 50)
+    private String posteCode;
+
+    @Column(length = 100)
+    private String destinationSortie;
+
+    @Column(length = 150)
+    private String motifSortie;
+
+    private Integer aldreteSortie;
+
+    @Column(length = 150)
+    private String decisionMedicale;
+
+    @Column(columnDefinition = "TEXT")
+    private String observationsSortie;
+
+    @Column(columnDefinition = "TEXT")
+    private String transmissionResume;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "sortie_validee_par")
+    private User sortieValideePar;
+
     @OneToOne
     @JoinColumn(name = "intervention_id", nullable = false, unique = true)
     private Intervention intervention;
 
-    // 1 → N Surveillance
-    @OneToMany(mappedBy = "sspi", cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "sspi", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<SurveillanceSSPI> surveillances = new ArrayList<>();
 
-    // 1 → N Incidents
-    @OneToMany(mappedBy = "sspi", cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "sspi", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<IncidentSSPI> incidents = new ArrayList<>();
 
-    // 0..1 → 1 Reanimation
+    @OneToMany(mappedBy = "sspi", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<TraitementSSPI> traitements = new ArrayList<>();
+
     @OneToOne(mappedBy = "sspi", cascade = CascadeType.ALL)
     private Reanimation reanimation;
 }

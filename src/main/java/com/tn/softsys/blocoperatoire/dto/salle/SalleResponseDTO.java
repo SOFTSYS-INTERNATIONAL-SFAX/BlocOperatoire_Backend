@@ -11,6 +11,15 @@ public class SalleResponseDTO {
 
     private UUID salleId;
     private String nom;
-    private String type;
-    private Boolean disponible;
+    private String nomEn;
+    private String nomAr;
+    private String idBloc;
+    private String idBlocEn;
+    private String idBlocAr;
+    private String etageBatiment;
+    private String etageBatimentEn;
+    private String etageBatimentAr;
+    private String equipements;
+    private Boolean active;
+    private String statut;
 }

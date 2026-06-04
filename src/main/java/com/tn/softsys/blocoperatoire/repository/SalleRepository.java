@@ -8,15 +8,15 @@ import java.util.UUID;
 
 public interface SalleRepository extends JpaRepository<Salle, UUID> {
 
-    Page<Salle> findByDisponible(Boolean disponible, Pageable pageable);
+    Page<Salle> findByActive(Boolean active, Pageable pageable);
 
     Page<Salle> findByNomContainingIgnoreCase(String nom, Pageable pageable);
 
-    Page<Salle> findByTypeContainingIgnoreCase(String type, Pageable pageable);
+    Page<Salle> findByEtageBatimentContainingIgnoreCase(String etageBatiment, Pageable pageable);
 
-    Page<Salle> findByNomContainingIgnoreCaseAndTypeContainingIgnoreCase(
+    Page<Salle> findByNomContainingIgnoreCaseAndEtageBatimentContainingIgnoreCase(
             String nom,
-            String type,
+            String etageBatiment,
             Pageable pageable
     );
 }
