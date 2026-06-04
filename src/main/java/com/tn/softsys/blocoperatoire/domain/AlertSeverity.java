@@ -1,4 +1,5 @@
 package com.tn.softsys.blocoperatoire.domain;
 
-public class AlertSeverity {
+public enum AlertSeverity {
+    INFO, WARNING, CRITICAL
 }

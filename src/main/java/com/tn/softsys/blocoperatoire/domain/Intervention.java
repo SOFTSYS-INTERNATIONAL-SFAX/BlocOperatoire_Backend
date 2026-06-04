@@ -31,6 +31,12 @@ public class Intervention {
     @Column(nullable = false)
     private String nomIntervention;
 
+    @Column(name = "nom_intervention_en")
+    private String nomInterventionEn;
+
+    @Column(name = "nom_intervention_ar")
+    private String nomInterventionAr;
+
     private String codeActe;
 
     @Enumerated(EnumType.STRING)
@@ -109,5 +115,9 @@ public class Intervention {
             cascade = CascadeType.ALL,
             orphanRemoval = true)
     private List<Score> scores = new ArrayList<>();
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "catalog_id")
+    private InterventionCatalog catalog;
+
 
 }

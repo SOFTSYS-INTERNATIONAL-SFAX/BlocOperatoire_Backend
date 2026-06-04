@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
@@ -35,14 +36,10 @@ public class SecurityConfig {
     private final RateLimitFilter rateLimitFilter;
     private final CustomUserDetailsService customUserDetailsService;
 
-    /* ================= PASSWORD ENCODER ================= */
-
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
-
-    /* ================= AUTHENTICATION MANAGER ================= */
 
     @Bean
     public AuthenticationManager authenticationManager(
@@ -50,55 +47,62 @@ public class SecurityConfig {
         return config.getAuthenticationManager();
     }
 
-    /* ================= DAO AUTH PROVIDER ================= */
-
     @Bean
     public DaoAuthenticationProvider daoAuthenticationProvider() {
-
         DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
         provider.setUserDetailsService(customUserDetailsService);
         provider.setPasswordEncoder(passwordEncoder());
-
         return provider;
     }
 
-    /* ================= CORS ================= */
-
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
-
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of("*"));
-        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+
+        config.setAllowedOriginPatterns(List.of(
+                "http://localhost",
+                "http://localhost:[*]",
+                "https://localhost",
+                "https://localhost:[*]",
+                "http://127.0.0.1",
+                "http://127.0.0.1:[*]",
+                "https://127.0.0.1:[*]",
+                "http://192.168.*",
+                "http://192.168.*:[*]",
+                "https://192.168.*:[*]"
+        ));
+
+        config.setAllowedMethods(List.of(
+                "GET",
+                "POST",
+                "PUT",
+                "PATCH",
+                "DELETE",
+                "OPTIONS"
+        ));
+
         config.setAllowedHeaders(List.of("*"));
-        config.setAllowCredentials(false);
+        config.setExposedHeaders(List.of("Authorization"));
+        config.setAllowCredentials(true);
+        config.setMaxAge(3600L);
 
-        UrlBasedCorsConfigurationSource source =
-                new UrlBasedCorsConfigurationSource();
-
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
-
         return source;
     }
 
-    /* ================= SECURITY FILTER CHAIN ================= */
-
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-
         http
                 .csrf(csrf -> csrf.disable())
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
-
-                /* ===== EXCEPTION HANDLING ===== */
-
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint((request, response, authException) -> {
                             response.setStatus(401);
-                            response.setContentType("application/json");
+                            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
                             response.getWriter().write("""
                                 {
                                   "error":"UNAUTHORIZED",
@@ -110,7 +114,7 @@ public class SecurityConfig {
                         })
                         .accessDeniedHandler((request, response, accessDeniedException) -> {
                             response.setStatus(403);
-                            response.setContentType("application/json");
+                            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
                             response.getWriter().write("""
                                 {
                                   "error":"FORBIDDEN",
@@ -121,30 +125,18 @@ public class SecurityConfig {
                                 """.formatted(LocalDateTime.now()));
                         })
                 )
-
-                /* ===== AUTHORIZATION RULES ===== */
-
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        .requestMatchers("/ws-alerts", "/ws-alerts/**").permitAll()
                         .requestMatchers("/api/auth/**").permitAll()
                         .anyRequest().authenticated()
                 )
-
                 .authenticationProvider(daoAuthenticationProvider())
                 .httpBasic(basic -> basic.disable())
                 .formLogin(form -> form.disable());
 
-        /* =====================================================
-           FILTER ORDER — VERSION FINALE CORRECTE
-           ===================================================== */
-
-        // 1️⃣ RateLimit avant UsernamePasswordAuthenticationFilter
-        http.addFilterBefore(rateLimitFilter,
-              UsernamePasswordAuthenticationFilter.class);
-
-        // 2️⃣ JWT avant UsernamePasswordAuthenticationFilter
-        http.addFilterBefore(jwtAuthenticationFilter,
-              UsernamePasswordAuthenticationFilter.class);
+        http.addFilterBefore(rateLimitFilter, UsernamePasswordAuthenticationFilter.class);
+        http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }

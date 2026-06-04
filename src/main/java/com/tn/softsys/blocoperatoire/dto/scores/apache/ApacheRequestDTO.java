@@ -12,8 +12,6 @@ import java.util.UUID;
 @AllArgsConstructor
 public class ApacheRequestDTO {
 
-    /* ===================== PARAMÈTRES PHYSIOLOGIQUES ===================== */
-
     @DecimalMin("30.0")
     @DecimalMax("45.0")
     private double temperature;
@@ -66,19 +64,15 @@ public class ApacheRequestDTO {
     @Max(120)
     private int age;
 
-    /* ===================== JUSTIFICATION CLINIQUE ===================== */
-
     @NotBlank
     @Size(max = 2000)
     private String justification;
 
-    /* ===================== STATUT CHRONIQUE ===================== */
-
     @NotNull
     private ChronicHealthStatus chronicHealthStatus;
 
-    /* ===================== INTERVENTION ===================== */
-
     @NotNull
+    private UUID patientId;
+
     private UUID interventionId;
 }

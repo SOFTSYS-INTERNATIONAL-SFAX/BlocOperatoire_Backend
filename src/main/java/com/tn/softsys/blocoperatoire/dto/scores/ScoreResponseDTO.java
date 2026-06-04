@@ -16,6 +16,6 @@ public class ScoreResponseDTO {
     private Integer valeur;
     private String algorithmVersion;
     private LocalDateTime dateCalcul;
-
-    private UUID interventionId;   // 🔥 doit exister
+    private UUID patientId;
+    private UUID interventionId;
 }

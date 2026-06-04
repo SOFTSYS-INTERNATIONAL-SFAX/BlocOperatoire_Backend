@@ -6,6 +6,9 @@ import com.tn.softsys.blocoperatoire.domain.GroupeSanguin;
 
 import org.springframework.data.jpa.domain.Specification;
 
+import jakarta.persistence.criteria.Join;
+import jakarta.persistence.criteria.JoinType;
+
 import java.time.LocalDate;
 
 public class PatientSpecification {
@@ -21,32 +24,43 @@ public class PatientSpecification {
 
         return (root, query, cb) -> {
 
+            query.distinct(true);
+
             var predicate = cb.conjunction();
+
+            /* ================= EXCLURE PATIENTS ARCHIVÉS ================= */
+
+            predicate = cb.and(predicate,
+                    cb.equal(root.get("archived"), false));
 
             /* ================= NOM ================= */
 
             if (nom != null && !nom.isBlank()) {
                 predicate = cb.and(predicate,
-                        cb.like(cb.lower(root.get("nom")),
-                                "%" + nom.toLowerCase() + "%"));
+                        cb.like(
+                                cb.lower(root.get("nom")),
+                                "%" + nom.toLowerCase() + "%"
+                        ));
             }
 
             /* ================= PRENOM ================= */
 
             if (prenom != null && !prenom.isBlank()) {
                 predicate = cb.and(predicate,
-                        cb.like(cb.lower(root.get("prenom")),
-                                "%" + prenom.toLowerCase() + "%"));
+                        cb.like(
+                                cb.lower(root.get("prenom")),
+                                "%" + prenom.toLowerCase() + "%"
+                        ));
             }
 
-            /* ================= SEXE (ENUM) ================= */
+            /* ================= SEXE ================= */
 
             if (sexe != null) {
                 predicate = cb.and(predicate,
                         cb.equal(root.get("sexe"), sexe));
             }
 
-            /* ================= GROUPE SANGUIN (ENUM) ================= */
+            /* ================= GROUPE SANGUIN ================= */
 
             if (groupeSanguin != null) {
                 predicate = cb.and(predicate,
@@ -56,9 +70,15 @@ public class PatientSpecification {
             /* ================= ALLERGIE ================= */
 
             if (allergie != null && !allergie.isBlank()) {
+
+                Join<Patient, String> allergiesJoin =
+                        root.join("allergies", JoinType.LEFT);
+
                 predicate = cb.and(predicate,
-                        cb.like(cb.lower(root.get("allergies")),
-                                "%" + allergie.toLowerCase() + "%"));
+                        cb.like(
+                                cb.lower(allergiesJoin),
+                                "%" + allergie.toLowerCase() + "%"
+                        ));
             }
 
             /* ================= DATE NAISSANCE ================= */

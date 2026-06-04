@@ -4,7 +4,6 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -41,6 +40,11 @@ public class RateLimitFilter extends OncePerRequestFilter {
 
         String path = request.getRequestURI();
 
+        if ("OPTIONS".equalsIgnoreCase(request.getMethod()) || path.startsWith("/ws-alerts")) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
         if ("/api/auth/login".equals(path)
                 && "POST".equalsIgnoreCase(request.getMethod())) {
 
@@ -50,12 +54,10 @@ public class RateLimitFilter extends OncePerRequestFilter {
             AttemptData data = attemptsCache.get(clientIp);
 
             if (data != null) {
-
                 long minutesSinceLast =
                         Duration.between(data.lastAttempt, now).toMinutes();
 
                 if (minutesSinceLast >= BLOCK_DURATION_MINUTES) {
-                    // reset après expiration
                     attemptsCache.remove(clientIp);
                 } else if (data.attempts >= MAX_ATTEMPTS) {
 
@@ -74,12 +76,9 @@ public class RateLimitFilter extends OncePerRequestFilter {
                 }
             }
 
-            // 🔥 On laisse passer l’auth
             filterChain.doFilter(request, response);
 
-            // 🔥 Après traitement → si échec seulement
             if (response.getStatus() == HttpStatus.UNAUTHORIZED.value()) {
-
                 attemptsCache.compute(clientIp, (ip, existing) -> {
                     if (existing == null) {
                         return new AttemptData(1, now);
@@ -88,10 +87,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
                     existing.lastAttempt = now;
                     return existing;
                 });
-
             } else if (response.getStatus() == HttpStatus.OK.value()) {
-
-                // reset après succès
                 attemptsCache.remove(clientIp);
             }
 

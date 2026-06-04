@@ -16,9 +16,10 @@ public class AldreteRequestDTO {
 
     @Min(0) @Max(2)
     private int respiration;
+
     @NotBlank
     @Size(max = 2000)
-    private String justification;   // 🔥 AJOUT IMPORTANT
+    private String justification;
 
     @Min(0) @Max(2)
     private int circulation;
@@ -30,5 +31,7 @@ public class AldreteRequestDTO {
     private int oxygenation;
 
     @NotNull
+    private UUID patientId;
+
     private UUID interventionId;
 }

@@ -15,4 +15,13 @@ public class DecesResponseDTO {
     private LocalDateTime dateDeces;
     private String cause;
     private String constatPar;
+
+    private UUID patientId;
+    private String patientNomComplet;
+    private String patientMrn;
+
+    private UUID caseId;
+    private String numeroCase;
+    private UUID morgueId;
+    private String morgueNom;
 }

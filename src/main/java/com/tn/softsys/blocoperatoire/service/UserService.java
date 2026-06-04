@@ -18,8 +18,12 @@ import java.util.stream.Collectors;
 @Transactional
 public class UserService {
 
+    private static final String MODULE = "PERSONNEL";
+
     private final UserRepository userRepository;
     private final UserMapper userMapper;
+    private final AuditLogService auditLogService;
+    private final AuditContextService auditContextService;
 
     /* =====================================================
        CREATE USER
@@ -33,6 +37,13 @@ public class UserService {
 
         User user = userMapper.toEntity(dto);
         user = userRepository.save(user);
+
+        audit(
+                "PERSONNEL_CREATE",
+                user.getUserId(),
+                "Creation personnel email=" + user.getEmail()
+                        + " roles=" + user.getRoles()
+        );
 
         return userMapper.toDTO(user);
     }
@@ -74,9 +85,20 @@ public class UserService {
                 .orElseThrow(() ->
                         new ResourceNotFoundException("User not found: " + id));
 
-        userMapper.updateEntity(user, dto);
+        String oldEmail = user.getEmail();
+        String oldRoles = String.valueOf(user.getRoles());
 
+        userMapper.updateEntity(user, dto);
         user = userRepository.save(user);
+
+        audit(
+                "PERSONNEL_UPDATE",
+                user.getUserId(),
+                "Mise a jour personnel emailAvant=" + oldEmail
+                        + " emailApres=" + user.getEmail()
+                        + " rolesAvant=" + oldRoles
+                        + " rolesApres=" + user.getRoles()
+        );
 
         return userMapper.toDTO(user);
     }
@@ -92,8 +114,14 @@ public class UserService {
                         new ResourceNotFoundException("User not found: " + id));
 
         user.setEnabled(false);
-
         userRepository.save(user);
+
+        audit(
+                "PERSONNEL_DEACTIVATE",
+                user.getUserId(),
+                "Desactivation personnel email=" + user.getEmail()
+                        + " roles=" + user.getRoles()
+        );
     }
 
     /* =====================================================
@@ -102,10 +130,32 @@ public class UserService {
 
     public void delete(UUID id) {
 
-        if (!userRepository.existsById(id)) {
-            throw new ResourceNotFoundException("User not found: " + id);
-        }
+        User user = userRepository.findById(id)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("User not found: " + id));
+
+        audit(
+                "PERSONNEL_DELETE",
+                user.getUserId(),
+                "Suppression personnel email=" + user.getEmail()
+                        + " roles=" + user.getRoles()
+        );
 
         userRepository.deleteById(id);
+    }
+
+    /* =====================================================
+       AUDIT
+       ===================================================== */
+
+    private void audit(String action, UUID referenceId, String details) {
+        auditLogService.log(
+                auditContextService.getCurrentUserOrNull(),
+                action,
+                MODULE,
+                referenceId,
+                details,
+                auditContextService.getClientIp()
+        );
     }
 }

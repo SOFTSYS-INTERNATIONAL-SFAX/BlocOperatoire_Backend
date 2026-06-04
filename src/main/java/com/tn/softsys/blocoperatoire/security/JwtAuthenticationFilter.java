@@ -2,17 +2,13 @@ package com.tn.softsys.blocoperatoire.security;
 
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;
-
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -21,7 +17,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-import java.time.LocalDateTime;
+import java.util.List;
 
 @Component
 @RequiredArgsConstructor
@@ -31,6 +27,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtService jwtService;
     private final CustomUserDetailsService userDetailsService;
 
+    private static final List<String> PUBLIC_ENDPOINTS = List.of(
+            "/api/auth/login",
+            "/api/auth/register",
+            "/api/auth/verify-mfa",
+            "/api/auth/refresh"
+    );
+
     @Override
     protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response,
@@ -39,25 +42,22 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         String path = request.getRequestURI();
 
-        log.debug("Incoming request: {} {}", request.getMethod(), path);
+        if ("OPTIONS".equalsIgnoreCase(request.getMethod()) || path.startsWith("/ws-alerts")) {
+            filterChain.doFilter(request, response);
+            return;
+        }
 
-        // 🔹 Ignore authentication endpoints
-        if (path.startsWith("/api/auth")) {
+        log.debug("Incoming request {} {}", request.getMethod(), path);
+
+        if (isPublicEndpoint(path)) {
             filterChain.doFilter(request, response);
             return;
         }
 
         String authHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
 
-        // 🔹 No header → let Spring handle 401
-        if (authHeader == null) {
-            log.debug("No Authorization header found");
-            filterChain.doFilter(request, response);
-            return;
-        }
-
-        if (!authHeader.startsWith("Bearer ")) {
-            log.debug("Authorization header does not start with Bearer");
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            log.debug("No Bearer token found");
             filterChain.doFilter(request, response);
             return;
         }
@@ -65,9 +65,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String token = authHeader.substring(7);
 
         try {
-
             String email = jwtService.extractEmail(token);
-            log.debug("Extracted email from token: {}", email);
 
             if (email != null &&
                     SecurityContextHolder.getContext().getAuthentication() == null) {
@@ -75,11 +73,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 UserDetails userDetails =
                         userDetailsService.loadUserByUsername(email);
 
-                boolean valid = jwtService.isTokenValid(token, userDetails);
-                log.debug("Token valid: {}", valid);
-
-                if (valid) {
-
+                if (jwtService.isTokenValid(token, userDetails)) {
                     UsernamePasswordAuthenticationToken authentication =
                             new UsernamePasswordAuthenticationToken(
                                     userDetails,
@@ -88,56 +82,33 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                             );
 
                     authentication.setDetails(
-                            new WebAuthenticationDetailsSource()
-                                    .buildDetails(request)
+                            new WebAuthenticationDetailsSource().buildDetails(request)
                     );
 
-                    SecurityContextHolder.getContext()
-                            .setAuthentication(authentication);
+                    SecurityContextHolder.getContext().setAuthentication(authentication);
 
-                    log.debug("JWT authentication success for user: {}", email);
-                } else {
-                    log.warn("Token validation failed for user: {}", email);
+                    log.debug("JWT authenticated user {}", email);
                 }
             }
 
         } catch (ExpiredJwtException ex) {
-
-            log.warn("JWT expired: {}", ex.getMessage());
-            sendUnauthorized(response, "Token expired");
-            return;
+            log.warn("JWT expired {}", ex.getMessage());
+            SecurityContextHolder.clearContext();
 
         } catch (JwtException ex) {
-
-            log.warn("JWT invalid: {}", ex.getMessage());
-            sendUnauthorized(response, "Invalid token");
-            return;
+            log.warn("JWT invalid {}", ex.getMessage());
+            SecurityContextHolder.clearContext();
 
         } catch (Exception ex) {
-
-            log.error("Unexpected JWT error: {}", ex.getMessage());
-            sendUnauthorized(response, "Authentication error");
-            return;
+            log.error("Unexpected authentication error {}", ex.getMessage());
+            SecurityContextHolder.clearContext();
         }
 
         filterChain.doFilter(request, response);
     }
 
-    private void sendUnauthorized(HttpServletResponse response, String message)
-            throws IOException {
-
-        SecurityContextHolder.clearContext();
-
-        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-
-        response.getWriter().write("""
-                {
-                  "error": "UNAUTHORIZED",
-                  "message": "%s",
-                  "status": 401,
-                  "timestamp": "%s"
-                }
-                """.formatted(message, LocalDateTime.now()));
+    private boolean isPublicEndpoint(String path) {
+        return PUBLIC_ENDPOINTS.stream()
+                .anyMatch(path::startsWith);
     }
 }

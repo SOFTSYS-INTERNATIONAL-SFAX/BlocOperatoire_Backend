@@ -1,4 +1,4 @@
-package com.tn.softsys.blocoperatoire.web.controller;
+package com.tn.softsys.blocoperatoire.controller;
 
 import com.tn.softsys.blocoperatoire.domain.AuditLog;
 import com.tn.softsys.blocoperatoire.service.AuditLogService;

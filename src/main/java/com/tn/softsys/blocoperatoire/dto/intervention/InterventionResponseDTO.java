@@ -14,10 +14,14 @@ import java.util.UUID;
 public class InterventionResponseDTO {
 
     private UUID interventionId;
+    private UUID catalogId;
+
 
     /* ================= DONNÉES MÉDICALES ================= */
 
     private String nomIntervention;
+    private String nomInterventionEn;
+    private String nomInterventionAr;
     private String codeActe;
 
     private Lateralite lateralite;

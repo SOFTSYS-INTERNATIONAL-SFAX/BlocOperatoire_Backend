@@ -19,67 +19,38 @@ public class UserController {
 
     private final UserService userService;
 
-    /* =====================================================
-       CREATE USER
-       ===================================================== */
-
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN')")
-    public UserResponseDTO create(
-            @Valid @RequestBody UserCreateRequestDTO dto
-    ) {
+    @PreAuthorize("hasAuthority('USER_MANAGE')")
+    public UserResponseDTO create(@Valid @RequestBody UserCreateRequestDTO dto) {
         return userService.create(dto);
     }
 
-    /* =====================================================
-       GET USER BY ID
-       ===================================================== */
-
     @GetMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyAuthority('USER_MANAGE','USER_DIRECTORY_READ')")
     public UserResponseDTO getById(@PathVariable UUID id) {
         return userService.getById(id);
     }
 
-    /* =====================================================
-       GET ALL USERS
-       ===================================================== */
-
     @GetMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyAuthority('USER_MANAGE','USER_DIRECTORY_READ')")
     public List<UserResponseDTO> getAll() {
         return userService.getAll();
     }
 
-    /* =====================================================
-       UPDATE USER
-       ===================================================== */
-
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
-    public UserResponseDTO update(
-            @PathVariable UUID id,
-            @Valid @RequestBody UserUpdateRequestDTO dto
-    ) {
+    @PreAuthorize("hasAuthority('USER_MANAGE')")
+    public UserResponseDTO update(@PathVariable UUID id, @Valid @RequestBody UserUpdateRequestDTO dto) {
         return userService.update(id, dto);
     }
 
-    /* =====================================================
-       SOFT DELETE (Disable account)
-       ===================================================== */
-
     @PatchMapping("/{id}/deactivate")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('USER_MANAGE')")
     public void deactivate(@PathVariable UUID id) {
         userService.deactivate(id);
     }
 
-    /* =====================================================
-       HARD DELETE
-       ===================================================== */
-
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('USER_MANAGE')")
     public void delete(@PathVariable UUID id) {
         userService.delete(id);
     }

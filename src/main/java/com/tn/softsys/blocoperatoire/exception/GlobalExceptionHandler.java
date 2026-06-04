@@ -12,8 +12,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authorization.AuthorizationDeniedException;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -72,6 +74,34 @@ public class GlobalExceptionHandler {
         log.warn("400 - Constraint violation: {}", ex.getMessage());
 
         return buildResponse(HttpStatus.BAD_REQUEST,
+                ex.getMessage(),
+                request,
+                null);
+    }
+
+    @ExceptionHandler({
+            IllegalArgumentException.class,
+            MethodArgumentTypeMismatchException.class,
+            MaxUploadSizeExceededException.class
+    })
+    public ResponseEntity<ApiError> handleBadRequest(Exception ex,
+                                                     HttpServletRequest request) {
+
+        log.warn("400 - Bad request: {}", ex.getMessage());
+
+        return buildResponse(HttpStatus.BAD_REQUEST,
+                ex.getMessage(),
+                request,
+                null);
+    }
+
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<ApiError> handleIllegalState(IllegalStateException ex,
+                                                       HttpServletRequest request) {
+
+        log.warn("409 - Illegal state: {}", ex.getMessage());
+
+        return buildResponse(HttpStatus.CONFLICT,
                 ex.getMessage(),
                 request,
                 null);

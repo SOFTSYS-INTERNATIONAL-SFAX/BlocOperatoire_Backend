@@ -25,8 +25,10 @@ public class GcsRequestDTO {
 
     @NotBlank
     @Size(max = 2000)
-    private String justification;   // 🔥 AJOUT IMPORTANT
+    private String justification;
 
     @NotNull
+    private UUID patientId;
+
     private UUID interventionId;
 }

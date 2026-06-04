@@ -1,5 +1,6 @@
 package com.tn.softsys.blocoperatoire.dto.consentement;
 
+import com.tn.softsys.blocoperatoire.domain.ConsentementStatut;
 import lombok.Builder;
 import lombok.Data;
 
@@ -14,7 +15,11 @@ public class ConsentementResponseDTO {
     private String type;
     private LocalDateTime date;
     private Boolean valide;
+    private ConsentementStatut statut;
 
     private UUID patientId;
     private UUID interventionId;
+    private LocalDateTime verifiedAt;
+    private UUID verifiedByUserId;
+    private String verifiedByName;
 }

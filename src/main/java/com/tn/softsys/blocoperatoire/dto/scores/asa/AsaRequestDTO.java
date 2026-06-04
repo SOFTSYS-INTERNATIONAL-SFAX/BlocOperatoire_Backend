@@ -14,22 +14,18 @@ import java.util.UUID;
 public class AsaRequestDTO {
 
     private boolean brainDeadDonor;
-
     private boolean moribund;
-
     private boolean lifeThreateningDisease;
-
     private boolean severeSystemicDisease;
-
     private boolean mildSystemicDisease;
-
     private boolean emergency;
-    /* ===================== JUSTIFICATION CLINIQUE ===================== */
 
     @NotBlank
     @Size(max = 2000)
     private String justification;
 
-    @NotNull(message = "Intervention ID is required")
+    @NotNull(message = "Patient ID is required")
+    private UUID patientId;
+
     private UUID interventionId;
 }

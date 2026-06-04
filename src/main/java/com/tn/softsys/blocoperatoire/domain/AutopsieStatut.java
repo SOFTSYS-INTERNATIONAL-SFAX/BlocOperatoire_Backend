@@ -1,4 +1,8 @@
 package com.tn.softsys.blocoperatoire.domain;
 
-public class AutopsieStatut {
+public enum AutopsieStatut {
+    PLANIFIEE,
+    EN_COURS,
+    TERMINEE,
+    ANNULEE
 }

@@ -8,6 +8,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
+import java.util.Collections;
+import java.util.Locale;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -22,18 +25,14 @@ public class UserMapper {
 
     public User toEntity(UserCreateRequestDTO dto) {
 
-        Set<Role> roles = dto.getRoleIds()
-                .stream()
-                .map(roleId -> roleRepository.findById(roleId)
-                        .orElseThrow(() -> new RuntimeException("Role not found")))
-                .collect(Collectors.toSet());
+        Set<Role> roles = resolveRoles(dto.getRoles());
 
         return User.builder()
                 .nom(dto.getNom())
                 .prenom(dto.getPrenom())
                 .email(dto.getEmail())
                 .password(passwordEncoder.encode(dto.getPassword()))
-                .enabled(dto.getEnabled())
+                .enabled(dto.getEnabled() != null ? dto.getEnabled() : true)
                 .accountNonLocked(true)
                 .failedAttempts(0)
                 .mfaEnabled(false)
@@ -45,40 +44,40 @@ public class UserMapper {
 
     public void updateEntity(User user, UserUpdateRequestDTO dto) {
 
-        if (dto.getNom() != null)
+        if (dto.getNom() != null) {
             user.setNom(dto.getNom());
+        }
 
-        if (dto.getPrenom() != null)
+        if (dto.getPrenom() != null) {
             user.setPrenom(dto.getPrenom());
+        }
 
-        if (dto.getEmail() != null)
+        if (dto.getEmail() != null) {
             user.setEmail(dto.getEmail());
+        }
 
-        if (dto.getPassword() != null && !dto.getPassword().isBlank())
+        if (dto.getPassword() != null && !dto.getPassword().isBlank()) {
             user.setPassword(passwordEncoder.encode(dto.getPassword()));
+        }
 
-        if (dto.getEnabled() != null)
+        if (dto.getEnabled() != null) {
             user.setEnabled(dto.getEnabled());
+        }
 
-        if (dto.getAccountNonLocked() != null)
+        if (dto.getAccountNonLocked() != null) {
             user.setAccountNonLocked(dto.getAccountNonLocked());
+        }
 
-        if (dto.getMfaEnabled() != null)
+        if (dto.getMfaEnabled() != null) {
             user.setMfaEnabled(dto.getMfaEnabled());
+        }
 
-        if (dto.getRoleIds() != null && !dto.getRoleIds().isEmpty()) {
-
-            Set<Role> roles = dto.getRoleIds()
-                    .stream()
-                    .map(roleId -> roleRepository.findById(roleId)
-                            .orElseThrow(() -> new RuntimeException("Role not found")))
-                    .collect(Collectors.toSet());
-
-            user.setRoles(roles);
+        if (dto.getRoles() != null && !dto.getRoles().isEmpty()) {
+            user.setRoles(resolveRoles(dto.getRoles()));
         }
     }
 
-    /* ================= ENTITY → DTO ================= */
+    /* ================= ENTITY -> DTO ================= */
 
     public UserResponseDTO toDTO(User user) {
 
@@ -99,5 +98,25 @@ public class UserMapper {
                 .createdAt(user.getCreatedAt())
                 .updatedAt(user.getUpdatedAt())
                 .build();
+    }
+
+    private Set<Role> resolveRoles(Set<String> requestedRoles) {
+        Set<String> normalizedRoles = requestedRoles == null
+                ? Collections.emptySet()
+                : requestedRoles.stream()
+                .filter(Objects::nonNull)
+                .map(String::trim)
+                .filter(s -> !s.isBlank())
+                .map(s -> s.toUpperCase(Locale.ROOT))
+                .collect(Collectors.toSet());
+
+        if (normalizedRoles.isEmpty()) {
+            throw new IllegalArgumentException("At least one role is required");
+        }
+
+        return normalizedRoles.stream()
+                .map(roleName -> roleRepository.findByNom(roleName)
+                        .orElseThrow(() -> new RuntimeException("Role not found: " + roleName)))
+                .collect(Collectors.toSet());
     }
 }

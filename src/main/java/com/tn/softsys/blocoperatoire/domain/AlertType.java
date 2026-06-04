@@ -1,4 +1,14 @@
 package com.tn.softsys.blocoperatoire.domain;
 
-public class AlertType {
+public enum AlertType {
+    INTERVENTION_PLANIFIEE,
+    INTERVENTION_REPROGRAMMEE,
+    INTERVENTION_DEMARREE,
+    SSPI_DEPASSEMENT,
+    SSPI_DESATURATION,
+    SSPI_HYPOTENSION,
+    SSPI_HYPERTENSION,
+    SSPI_TACHYCARDIA,
+    SALLE_ACTIVEE,
+    SALLE_DESACTIVEE
 }

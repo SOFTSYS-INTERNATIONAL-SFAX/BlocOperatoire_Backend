@@ -8,29 +8,18 @@ public class ScoreMapper {
     private ScoreMapper() {}
 
     public static ScoreResponseDTO toResponse(Score score) {
-
         if (score == null) {
             return null;
         }
 
         return ScoreResponseDTO.builder()
                 .scoreId(score.getScoreId())
-                .scoreType(
-                        score.getScoreType() != null
-                                ? score.getScoreType().name()
-                                : null
-                )
+                .scoreType(score.getScoreType() != null ? score.getScoreType().name() : null)
                 .valeur(score.getValeur())
                 .algorithmVersion(score.getAlgorithmVersion())
                 .dateCalcul(score.getDateCalcul())
-
-                // ✅ AJOUT CRITIQUE
-                .interventionId(
-                        score.getIntervention() != null
-                                ? score.getIntervention().getInterventionId()
-                                : null
-                )
-
+                .patientId(score.getPatient() != null ? score.getPatient().getPatientId() : null)
+                .interventionId(score.getIntervention() != null ? score.getIntervention().getInterventionId() : null)
                 .build();
     }
 }

@@ -4,6 +4,8 @@ import com.tn.softsys.blocoperatoire.domain.Patient;
 import com.tn.softsys.blocoperatoire.domain.Sexe;
 import com.tn.softsys.blocoperatoire.domain.GroupeSanguin;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
@@ -18,18 +20,26 @@ public interface PatientRepository extends
     /* ================= IDENTIFICATION ================= */
 
     Optional<Patient> findByIdentiteFHIR(String identiteFHIR);
+
     boolean existsByIdentiteFHIR(String identiteFHIR);
 
     Optional<Patient> findByMrn(String mrn);
+
     boolean existsByMrn(String mrn);
 
     /* ================= STATISTIQUES ================= */
 
     long countBySexe(Sexe sexe);
+
     long countByGroupeSanguin(GroupeSanguin groupeSanguin);
 
     /* ================= LISTES RAPIDES ================= */
 
     List<Patient> findTop10ByOrderByCreatedAtDesc();
+
     List<Patient> findTop10ByOrderByUpdatedAtDesc();
+
+    List<Patient> findAllByArchivedFalse();
+
+    Page<Patient> findByArchivedTrue(Pageable pageable);
 }

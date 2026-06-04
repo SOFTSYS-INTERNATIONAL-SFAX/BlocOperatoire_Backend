@@ -11,58 +11,47 @@ import java.util.UUID;
 @AllArgsConstructor
 public class SofaRequestDTO {
 
-    /* ================= RESPIRATORY ================= */
-
     @NotNull
     @Positive
-    private Double pao2; // mmHg
+    private Double pao2;
 
     @NotNull
     @DecimalMin("0.21")
     @DecimalMax("1.0")
-    private Double fio2; // fraction (0.21 - 1.0)
+    private Double fio2;
 
     private boolean mechanicalVentilation;
-
-    /* ================= COAGULATION ================= */
 
     @NotNull
     @Min(0)
     private Integer platelets;
 
-    /* ================= LIVER ================= */
-
     @NotNull
     @DecimalMin("0.0")
     private Double bilirubin;
 
-    /* ================= CARDIOVASCULAR ================= */
-
     @NotNull
     private Double map;
 
-    private Double dopamine;        // mcg/kg/min
-    private Double dobutamine;      // mcg/kg/min
-    private Double epinephrine;     // mcg/kg/min
-    private Double norepinephrine;  // mcg/kg/min
-
-    /* ================= NEUROLOGICAL ================= */
+    private Double dopamine;
+    private Double dobutamine;
+    private Double epinephrine;
+    private Double norepinephrine;
 
     @NotNull
     @Min(3)
     @Max(15)
     private Integer gcs;
 
-    /* ================= RENAL ================= */
-
     @NotNull
     @DecimalMin("0.0")
     private Double creatinine;
 
-    private Double urineOutput24h;  // mL/day
+    private Double urineOutput24h;
     private String justification;
-    /* ================= RELATION ================= */
 
     @NotNull
+    private UUID patientId;
+
     private UUID interventionId;
 }

@@ -5,6 +5,8 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
+import java.util.Set;
+
 @Data
 public class RegisterRequest {
 
@@ -21,4 +23,7 @@ public class RegisterRequest {
     @NotBlank
     @Size(min = 8)
     private String password;
+
+    // optionnel: si null/vide, le controller met un role par defaut
+    private Set<String> roles;
 }

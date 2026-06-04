@@ -2,69 +2,71 @@ package com.tn.softsys.blocoperatoire.dto.patient;
 
 import com.tn.softsys.blocoperatoire.domain.GroupeSanguin;
 import com.tn.softsys.blocoperatoire.domain.Sexe;
-import jakarta.validation.constraints.*;
-import lombok.Getter;
-import lombok.Setter;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
+import lombok.*;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 
 @Getter
 @Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class PatientRequestDTO {
 
-    @NotBlank
-    @Size(max = 150)
+    @NotBlank(message = "L'identite FHIR est obligatoire")
     private String identiteFHIR;
 
-    @NotBlank
-    @Size(max = 100)
+    @NotBlank(message = "Le MRN est obligatoire")
     private String mrn;
 
-    @NotBlank
-    @Size(max = 100)
+    @NotBlank(message = "Le nom est obligatoire")
     private String nom;
 
-    @NotBlank
-    @Size(max = 100)
+    @NotBlank(message = "Le prenom est obligatoire")
     private String prenom;
 
-    @NotNull
-    @Past
+    @NotNull(message = "La date de naissance est obligatoire")
     private LocalDate dateNaissance;
 
-    @NotNull
+    @NotNull(message = "Le sexe est obligatoire")
     private Sexe sexe;
 
-    @Size(max = 100)
     private String nationalite;
 
     private GroupeSanguin groupeSanguin;
 
-    @Size(max = 1000)
-    private String allergies;
+    @Builder.Default
+    private List<String> allergies = new ArrayList<>();
 
-    @Size(max = 1000)
     private String traitementsEnCours;
 
-    @Size(max = 2000)
+    @Builder.Default
+    private List<String> traitementsHabituels = new ArrayList<>();
+
     private String antecedentsMedicaux;
 
-    /* ================= ANTHROPOMÉTRIE ================= */
+    @Builder.Default
+    private List<String> antecedentsImportants = new ArrayList<>();
 
-    @Positive(message = "La taille doit être positive")
+    @NotNull(message = "La taille est obligatoire")
+    @Positive(message = "La taille doit etre positive")
     private Double tailleCm;
 
-    @Positive(message = "Le poids doit être positif")
+    @NotNull(message = "Le poids est obligatoire")
+    @Positive(message = "Le poids doit etre positif")
     private Double poidsKg;
 
-    /* ================= CONTACT ================= */
-
-    @Size(max = 255)
+    @NotBlank(message = "Le contact d'urgence est obligatoire")
     private String contactUrgenceNom;
 
-    @Pattern(
-            regexp = "^[0-9+ ]{8,15}$",
-            message = "Numéro de téléphone invalide"
-    )
+    @NotBlank(message = "Le telephone d'urgence est obligatoire")
     private String contactUrgenceTelephone;
+
+    private String contactUrgenceRelation;
+    private String contactUrgenceNotes;
 }

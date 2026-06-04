@@ -40,57 +40,28 @@ public class ScoreController {
     private final ScoreService scoreService;
     private final HttpServletRequest request;
 
-    /* ======================= GCS ======================= */
-
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_MEDECIN')")
+    @PreAuthorize("hasAuthority('SCORE_VALIDATE')")
     @PostMapping("/gcs")
-    public ResponseEntity<GcsResponseDTO> createGcs(
-            @Valid @RequestBody GcsRequestDTO dto) {
-
+    public ResponseEntity<GcsResponseDTO> createGcs(@Valid @RequestBody GcsRequestDTO dto) {
         String ip = request.getRemoteAddr();
-
-        GcsInput input = new GcsInput(
-                dto.getEyes(),
-                dto.getVerbal(),
-                dto.getMotor(),
-                dto.getJustification()
-        );
-
-        Glasgow entity = scoreService.createGcs(input, dto.getInterventionId(), ip);
-
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(GcsMapper.toResponse(entity));
+        GcsInput input = new GcsInput(dto.getEyes(), dto.getVerbal(), dto.getMotor(), dto.getJustification());
+        Glasgow entity = scoreService.createGcs(input, dto.getPatientId(), dto.getInterventionId(), ip);
+        return ResponseEntity.status(HttpStatus.CREATED).body(GcsMapper.toResponse(entity));
     }
 
-    /* ======================= EVA ======================= */
-
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_MEDECIN')")
+    @PreAuthorize("hasAuthority('SCORE_VALIDATE')")
     @PostMapping("/eva")
-    public ResponseEntity<EvaResponseDTO> createEva(
-            @Valid @RequestBody EvaRequestDTO dto) {
-
+    public ResponseEntity<EvaResponseDTO> createEva(@Valid @RequestBody EvaRequestDTO dto) {
         String ip = request.getRemoteAddr();
-
-        EvaInput input = new EvaInput(
-                dto.getValue(),
-                dto.getJustification()
-        );
-
-        Eva entity = scoreService.createEva(input, dto.getInterventionId(), ip);
-
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(EvaMapper.toResponse(entity, dto.getValue() >= 7));
+        EvaInput input = new EvaInput(dto.getValue(), dto.getJustification());
+        Eva entity = scoreService.createEva(input, dto.getPatientId(), dto.getInterventionId(), ip);
+        return ResponseEntity.status(HttpStatus.CREATED).body(EvaMapper.toResponse(entity, dto.getValue() >= 7));
     }
 
-    /* ======================= ALDRETE ======================= */
-
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_MEDECIN')")
+    @PreAuthorize("hasAuthority('SCORE_VALIDATE')")
     @PostMapping("/aldrete")
-    public ResponseEntity<AldreteResponseDTO> createAldrete(
-            @Valid @RequestBody AldreteRequestDTO dto) {
-
+    public ResponseEntity<AldreteResponseDTO> createAldrete(@Valid @RequestBody AldreteRequestDTO dto) {
         String ip = request.getRemoteAddr();
-
         AldreteInput input = new AldreteInput(
                 dto.getActivity(),
                 dto.getRespiration(),
@@ -99,22 +70,14 @@ public class ScoreController {
                 dto.getOxygenation(),
                 dto.getJustification()
         );
-
-        Aldrete entity = scoreService.createAldrete(input, dto.getInterventionId(), ip);
-
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(AldreteMapper.toResponse(entity));
+        Aldrete entity = scoreService.createAldrete(input, dto.getPatientId(), dto.getInterventionId(), ip);
+        return ResponseEntity.status(HttpStatus.CREATED).body(AldreteMapper.toResponse(entity));
     }
 
-    /* ======================= APACHE ======================= */
-
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_MEDECIN')")
+    @PreAuthorize("hasAuthority('SCORE_VALIDATE')")
     @PostMapping("/apache")
-    public ResponseEntity<ApacheResponseDTO> createApache(
-            @Valid @RequestBody ApacheRequestDTO dto) {
-
+    public ResponseEntity<ApacheResponseDTO> createApache(@Valid @RequestBody ApacheRequestDTO dto) {
         String ip = request.getRemoteAddr();
-
         ApacheInput input = new ApacheInput(
                 dto.getTemperature(),
                 dto.getMap(),
@@ -132,22 +95,14 @@ public class ScoreController {
                 dto.getJustification(),
                 dto.getChronicHealthStatus()
         );
-
-        ApacheII entity = scoreService.createApache(input, dto.getInterventionId(), ip);
-
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApacheMapper.toResponse(entity));
+        ApacheII entity = scoreService.createApache(input, dto.getPatientId(), dto.getInterventionId(), ip);
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApacheMapper.toResponse(entity));
     }
 
-    /* ======================= SOFA ======================= */
-
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_MEDECIN')")
+    @PreAuthorize("hasAuthority('SCORE_VALIDATE')")
     @PostMapping("/sofa")
-    public ResponseEntity<SofaResponseDTO> createSofa(
-            @Valid @RequestBody SofaRequestDTO dto) {
-
+    public ResponseEntity<SofaResponseDTO> createSofa(@Valid @RequestBody SofaRequestDTO dto) {
         String ip = request.getRemoteAddr();
-
         SofaInput input = new SofaInput(
                 dto.getPao2(),
                 dto.getFio2(),
@@ -164,22 +119,14 @@ public class ScoreController {
                 dto.getCreatinine(),
                 dto.getUrineOutput24h()
         );
-
-        Sofa entity = scoreService.createSofa(input, dto.getInterventionId(), ip);
-
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(SofaMapper.toResponse(entity));
+        Sofa entity = scoreService.createSofa(input, dto.getPatientId(), dto.getInterventionId(), ip);
+        return ResponseEntity.status(HttpStatus.CREATED).body(SofaMapper.toResponse(entity));
     }
 
-    /* ======================= ASA ======================= */
-
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_MEDECIN')")
+    @PreAuthorize("hasAuthority('SCORE_VALIDATE')")
     @PostMapping("/asa")
-    public ResponseEntity<AsaResponseDTO> createAsa(
-            @Valid @RequestBody AsaRequestDTO dto) {
-
+    public ResponseEntity<AsaResponseDTO> createAsa(@Valid @RequestBody AsaRequestDTO dto) {
         String ip = request.getRemoteAddr();
-
         AsaInput input = new AsaInput(
                 dto.isBrainDeadDonor(),
                 dto.isMoribund(),
@@ -189,42 +136,26 @@ public class ScoreController {
                 dto.isEmergency(),
                 dto.getJustification()
         );
-
-        Asa entity = scoreService.createAsa(input, dto.getInterventionId(), ip);
-
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(AsaMapper.toResponse(entity));
+        Asa entity = scoreService.createAsa(input, dto.getPatientId(), dto.getInterventionId(), ip);
+        return ResponseEntity.status(HttpStatus.CREATED).body(AsaMapper.toResponse(entity));
     }
 
-    /* ======================= READ ======================= */
-
     @GetMapping("/{id}")
+    @PreAuthorize("hasAuthority('PATIENT_READ')")
     public ResponseEntity<ScoreResponseDTO> getScoreById(@PathVariable UUID id) {
-
         Score score = scoreService.getScoreById(id);
-
         return ResponseEntity.ok(ScoreMapper.toResponse(score));
     }
 
     @GetMapping("/intervention/{id}")
-    public ResponseEntity<Page<ScoreResponseDTO>> getScoresByIntervention(
-            @PathVariable UUID id,
-            Pageable pageable) {
-
-        return ResponseEntity.ok(
-                scoreService.getScoresByIntervention(id, pageable)
-                        .map(ScoreMapper::toResponse)
-        );
+    @PreAuthorize("hasAuthority('PATIENT_READ')")
+    public ResponseEntity<Page<ScoreResponseDTO>> getScoresByIntervention(@PathVariable UUID id, Pageable pageable) {
+        return ResponseEntity.ok(scoreService.getScoresByIntervention(id, pageable).map(ScoreMapper::toResponse));
     }
 
     @GetMapping("/patient/{id}")
-    public ResponseEntity<Page<ScoreResponseDTO>> getScoresByPatient(
-            @PathVariable UUID id,
-            Pageable pageable) {
-
-        return ResponseEntity.ok(
-                scoreService.getScoresByPatient(id, pageable)
-                        .map(ScoreMapper::toResponse)
-        );
+    @PreAuthorize("hasAuthority('PATIENT_READ')")
+    public ResponseEntity<Page<ScoreResponseDTO>> getScoresByPatient(@PathVariable UUID id, Pageable pageable) {
+        return ResponseEntity.ok(scoreService.getScoresByPatient(id, pageable).map(ScoreMapper::toResponse));
     }
 }

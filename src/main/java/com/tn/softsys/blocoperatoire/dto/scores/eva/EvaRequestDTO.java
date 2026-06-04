@@ -15,9 +15,12 @@ public class EvaRequestDTO {
     @Max(value = 10, message = "EVA must be <= 10")
     private int value;
 
-    @NotNull(message = "Intervention ID is required")
+    @NotNull(message = "Patient ID is required")
+    private UUID patientId;
+
     private UUID interventionId;
+
     @NotBlank
     @Size(max = 2000)
-    private String justification;   // 🔥 AJOUT IMPORTANT
+    private String justification;
 }

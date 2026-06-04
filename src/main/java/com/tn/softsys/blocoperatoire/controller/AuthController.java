@@ -5,6 +5,10 @@ import com.tn.softsys.blocoperatoire.dto.auth.*;
 import com.tn.softsys.blocoperatoire.repository.*;
 import com.tn.softsys.blocoperatoire.security.JwtService;
 import com.tn.softsys.blocoperatoire.service.*;
+import java.util.Locale;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -141,15 +145,13 @@ public class AuthController {
     public ResponseEntity<AuthResponse> register(
             @Valid @RequestBody RegisterRequest request
     ) {
-
         String ip = httpRequest.getRemoteAddr();
 
         if (userRepository.existsByEmail(request.getEmail())) {
             return ResponseEntity.badRequest().build();
         }
 
-        Role userRole = roleRepository.findByNom("USER")
-                .orElseThrow(() -> new RuntimeException("USER role not found"));
+        Set<Role> roles = resolveRoles(request);
 
         User user = User.builder()
                 .nom(request.getNom())
@@ -158,7 +160,7 @@ public class AuthController {
                 .password(passwordEncoder.encode(request.getPassword()))
                 .enabled(true)
                 .accountNonLocked(true)
-                .roles(Set.of(userRole))
+                .roles(roles)
                 .build();
 
         userRepository.save(user);
@@ -174,6 +176,30 @@ public class AuthController {
 
         return generateTokens(user, "REGISTER_LOGIN_SUCCESS", ip);
     }
+
+    private Set<Role> resolveRoles(RegisterRequest request) {
+        Set<String> requestedRoles = request.getRoles() == null
+                ? Set.of()
+                : request.getRoles().stream()
+                .filter(Objects::nonNull)
+                .map(String::trim)
+                .filter(s -> !s.isBlank())
+                .map(s -> s.toUpperCase(Locale.ROOT))
+                .collect(Collectors.toSet());
+
+        if (requestedRoles.isEmpty()) {
+            Role defaultRole = roleRepository.findByNom("USER")
+                    .or(() -> roleRepository.findByNom("INFIRMIER"))
+                    .orElseThrow(() -> new RuntimeException("No default role found (USER/INFIRMIER)"));
+            return Set.of(defaultRole);
+        }
+
+        return requestedRoles.stream()
+                .map(roleName -> roleRepository.findByNom(roleName)
+                        .orElseThrow(() -> new RuntimeException("Role not found: " + roleName)))
+                .collect(Collectors.toSet());
+    }
+
 
     /* =====================================================
        REFRESH TOKEN

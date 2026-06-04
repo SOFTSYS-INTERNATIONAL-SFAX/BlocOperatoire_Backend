@@ -24,11 +24,15 @@ public class InterventionRequestDTO {
 
     private UUID chirurgienId;
     private UUID anesthesisteId;
+    private UUID catalogId;
 
     /* ================= DONNÉES MÉDICALES ================= */
 
     @NotBlank(message = "Nom intervention obligatoire")
     private String nomIntervention;
+
+    private String nomInterventionEn;
+    private String nomInterventionAr;
 
     private String codeActe;
 

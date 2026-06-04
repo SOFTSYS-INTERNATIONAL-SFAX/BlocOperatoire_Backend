@@ -1,8 +1,10 @@
 package com.tn.softsys.blocoperatoire.service;
 
 import com.tn.softsys.blocoperatoire.domain.Consentement;
+import com.tn.softsys.blocoperatoire.domain.ConsentementStatut;
 import com.tn.softsys.blocoperatoire.domain.Intervention;
 import com.tn.softsys.blocoperatoire.domain.Patient;
+import com.tn.softsys.blocoperatoire.domain.User;
 import com.tn.softsys.blocoperatoire.dto.consentement.ConsentementRequestDTO;
 import com.tn.softsys.blocoperatoire.dto.consentement.ConsentementResponseDTO;
 import com.tn.softsys.blocoperatoire.exception.ResourceNotFoundException;
@@ -18,6 +20,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Service
@@ -29,6 +32,7 @@ public class ConsentementService {
     private final PatientRepository patientRepository;
     private final InterventionRepository interventionRepository;
     private final ConsentementMapper mapper;
+    private final AuditContextService auditContextService;
 
     // =========================================================
     // CREATE
@@ -72,8 +76,9 @@ public class ConsentementService {
                 .intervention(intervention)
                 .type(dto.getType())
                 .date(dto.getDate())
-                .valide(dto.getValide())
                 .build();
+
+        applyWorkflowState(entity, dto);
 
         return mapper.toDTO(repository.save(entity));
     }
@@ -128,7 +133,7 @@ public class ConsentementService {
         // ⚠️ On ne modifie PAS patient ni intervention
         entity.setType(dto.getType());
         entity.setDate(dto.getDate());
-        entity.setValide(dto.getValide());
+        applyWorkflowState(entity, dto);
 
         return mapper.toDTO(repository.save(entity));
     }
@@ -143,5 +148,54 @@ public class ConsentementService {
                 .orElseThrow(() -> new ResourceNotFoundException("Consentement not found"));
 
         repository.delete(entity);
+    }
+
+    private void applyWorkflowState(Consentement entity, ConsentementRequestDTO dto) {
+        ConsentementStatut statut = resolveRequestedStatut(dto);
+        entity.setStatut(statut);
+        entity.setValide(ConsentementStatut.VERIFIE.equals(statut));
+
+        if (ConsentementStatut.VERIFIE.equals(statut)) {
+            User currentUser = auditContextService.getCurrentUserOrNull();
+            entity.setVerifiedAt(LocalDateTime.now());
+            entity.setVerifiedBy(currentUser);
+            entity.setVerifiedByName(resolveUserDisplayName(currentUser));
+            return;
+        }
+
+        entity.setVerifiedAt(null);
+        entity.setVerifiedBy(null);
+        entity.setVerifiedByName(null);
+    }
+
+    private ConsentementStatut resolveRequestedStatut(ConsentementRequestDTO dto) {
+        if (dto.getStatut() != null) {
+            return dto.getStatut();
+        }
+
+        if (Boolean.TRUE.equals(dto.getValide())) {
+            return ConsentementStatut.VERIFIE;
+        }
+
+        return ConsentementStatut.BROUILLON;
+    }
+
+    private String resolveUserDisplayName(User user) {
+        if (user == null) {
+            return null;
+        }
+
+        String fullName = ((user.getPrenom() != null ? user.getPrenom().trim() : "") + " "
+                + (user.getNom() != null ? user.getNom().trim() : "")).trim();
+
+        if (!fullName.isBlank()) {
+            return fullName;
+        }
+
+        if (user.getEmail() != null && !user.getEmail().isBlank()) {
+            return user.getEmail().trim();
+        }
+
+        return user.getUserId() != null ? user.getUserId().toString() : null;
     }
 }

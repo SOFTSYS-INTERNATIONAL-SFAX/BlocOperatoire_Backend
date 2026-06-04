@@ -8,6 +8,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.data.domain.*;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
@@ -20,37 +21,29 @@ public class InterventionController {
 
     private final InterventionService service;
 
-    /* ================= CREATE ================= */
-
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN','MEDECIN')")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_MEDECIN','PLANNING_WRITE')")
     public InterventionResponseDTO create(
             @Valid @RequestBody InterventionRequestDTO dto) {
         return service.create(dto);
     }
 
-    /* ================= UPDATE ================= */
-
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','MEDECIN')")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_MEDECIN','PLANNING_WRITE')")
     public InterventionResponseDTO update(
             @PathVariable UUID id,
             @Valid @RequestBody InterventionRequestDTO dto) {
         return service.update(id, dto);
     }
 
-    /* ================= READ ONE ================= */
-
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','MEDECIN','INFIRMIER')")
+    @PreAuthorize("hasAuthority('PLANNING_READ')")
     public InterventionResponseDTO getById(@PathVariable UUID id) {
         return service.getById(id);
     }
 
-    /* ================= SEARCH ================= */
-
     @GetMapping
-    @PreAuthorize("hasAnyRole('ADMIN','MEDECIN','INFIRMIER')")
+    @PreAuthorize("hasAuthority('PLANNING_READ')")
     public Page<InterventionResponseDTO> search(
             @RequestParam(required = false) UUID patientId,
             @RequestParam(required = false) StatutIntervention statut,
@@ -67,7 +60,14 @@ public class InterventionController {
         );
     }
 
-    /* ================= DELETE ================= */
+    @PatchMapping("/{id}/statut")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_MEDECIN','PLANNING_WRITE','OMS_VALIDATE')")
+    public ResponseEntity<InterventionResponseDTO> updateStatut(
+            @PathVariable UUID id,
+            @Valid @RequestBody InterventionStatutPatchDTO dto) {
+
+        return ResponseEntity.ok(service.updateStatut(id, dto.getStatut()));
+    }
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
