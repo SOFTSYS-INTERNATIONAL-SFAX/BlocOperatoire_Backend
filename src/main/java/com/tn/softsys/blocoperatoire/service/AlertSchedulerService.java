@@ -1,5 +1,6 @@
 package com.tn.softsys.blocoperatoire.service;
 
+import com.tn.softsys.blocoperatoire.domain.Alert;
 import com.tn.softsys.blocoperatoire.domain.AlertSettings;
 import com.tn.softsys.blocoperatoire.domain.AlertType;
 import com.tn.softsys.blocoperatoire.domain.SSPI;
@@ -10,8 +11,11 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -19,6 +23,7 @@ import java.util.List;
 public class AlertSchedulerService {
 
     private static final long FIXED_RATE_MS = 10000L;
+    private static final long COOLDOWN_AFTER_ACK_MINUTES = 15L;
 
     private final SSPIRepository sspiRepository;
     private final AlertRepository alertRepository;
@@ -41,17 +46,36 @@ public class AlertSchedulerService {
 
             LocalDateTime threshold = sspi.getHeureEntree().plusMinutes(thresholdMinutes);
 
-            if (now.isAfter(threshold)) {
-                alertRepository
-                        .findByTypeAndIntervention_InterventionIdAndActiveTrue(
-                                AlertType.SSPI_DEPASSEMENT,
-                                sspi.getIntervention().getInterventionId()
-                        )
-                        .orElseGet(() -> {
-                            alertService.createSspiOverrunAlert(sspi);
-                            return null;
-                        });
+            if (!now.isAfter(threshold)) {
+                continue;
             }
+
+            UUID interventionId = sspi.getIntervention().getInterventionId();
+
+            // Skip if an active alert already exists
+            Optional<Alert> existing = alertRepository
+                    .findByTypeAndIntervention_InterventionIdAndActiveTrue(
+                            AlertType.SSPI_DEPASSEMENT, interventionId
+                    );
+
+            if (existing.isPresent()) {
+                continue;
+            }
+
+            // Don't recreate within cooldown period after the user acknowledged
+            Optional<Alert> lastAcked = alertRepository
+                    .findTopByTypeAndIntervention_InterventionIdAndAcknowledgedTrueOrderByAcknowledgedAtDesc(
+                            AlertType.SSPI_DEPASSEMENT, interventionId
+                    );
+
+            if (lastAcked.isPresent() && lastAcked.get().getAcknowledgedAt() != null) {
+                long minutesSinceAck = Duration.between(lastAcked.get().getAcknowledgedAt(), now).toMinutes();
+                if (minutesSinceAck < COOLDOWN_AFTER_ACK_MINUTES) {
+                    continue;
+                }
+            }
+
+            alertService.createSspiOverrunAlert(sspi);
         }
     }
 }

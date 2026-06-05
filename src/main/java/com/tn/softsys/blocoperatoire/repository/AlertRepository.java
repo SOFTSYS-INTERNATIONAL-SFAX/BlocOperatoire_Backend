@@ -40,4 +40,9 @@ public interface AlertRepository extends JpaRepository<Alert, UUID> {
             AlertType type,
             UUID interventionId
     );
+
+    Optional<Alert> findTopByTypeAndIntervention_InterventionIdAndAcknowledgedTrueOrderByAcknowledgedAtDesc(
+            AlertType type,
+            UUID interventionId
+    );
 }
