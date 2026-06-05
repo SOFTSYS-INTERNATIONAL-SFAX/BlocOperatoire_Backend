@@ -239,8 +239,8 @@ public class ScoreService {
     }
 
     private void validateIntervention(Intervention intervention) {
-        if (intervention.getStatut() == StatutIntervention.CLOTUREE) {
-            throw new IllegalStateException("Cannot add score to closed intervention");
+        if (intervention.getStatut() == StatutIntervention.ANNULEE) {
+            throw new IllegalStateException("Cannot add score to cancelled intervention");
         }
     }
 
