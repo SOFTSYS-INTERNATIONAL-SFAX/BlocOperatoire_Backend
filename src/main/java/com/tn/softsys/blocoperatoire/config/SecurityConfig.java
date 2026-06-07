@@ -25,8 +25,12 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import org.springframework.beans.factory.annotation.Value;
+
 import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Configuration
 @EnableWebSecurity
@@ -37,6 +41,9 @@ public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final RateLimitFilter rateLimitFilter;
     private final CustomUserDetailsService customUserDetailsService;
+
+    @Value("${spring.web.cors.allowed-origins:http://localhost,https://localhost,http://localhost:8081,http://192.168.100.31,https://192.168.100.31}")
+    private String corsAllowedOrigins;
 
     @Bean
     public org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer webSecurityCustomizer() {
@@ -68,18 +75,11 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
 
-        config.setAllowedOriginPatterns(List.of(
-                "http://localhost",
-                "http://localhost:[*]",
-                "https://localhost",
-                "https://localhost:[*]",
-                "http://127.0.0.1",
-                "http://127.0.0.1:[*]",
-                "https://127.0.0.1:[*]",
-                "http://192.168.*",
-                "http://192.168.*:[*]",
-                "https://192.168.*:[*]"
-        ));
+        List<String> origins = Arrays.stream(corsAllowedOrigins.split(","))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .collect(Collectors.toList());
+        config.setAllowedOrigins(origins);
 
         config.setAllowedMethods(List.of(
                 "GET",
